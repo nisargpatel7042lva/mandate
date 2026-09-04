@@ -34,3 +34,31 @@ decision to self-deploy SwapVM on Sepolia (eliminating cross-chain complexity); 
 to mark unverified external dependencies explicitly in ASSUMPTIONS.md rather than guessing.
 
 **Spec files used:** `/specs/build-plan.md` (the full ETHOnline 2026 build plan prompt)
+
+### 2026-09-04 | Backend | Phase 1
+
+**Task:** Identity layer — ERC-8004 agent registration, ENSv2 permission schema, PermissionMirror contract skeleton, relayer stub.
+
+**Claude Code was asked to:**
+- Write `scripts/register-identity.ts` — ERC-8004 agent registration on Sepolia (simulate → send → parse Transfer event → read-back)
+- Write `scripts/register-ens.ts` — ENSv2 name registration + subname + setText for `mandate.permissions` and `mandate.policy`
+- Write `scripts/read-identity.ts` — live on-chain read-back of all Phase 1 state
+- Write `scripts/relayer-stub.ts` — PermissionMirror relayer that polls ENS text records and would call `sync()` in Phase 2
+- Write `contracts/PermissionMirror.sol` — on-chain permission mirror contract skeleton
+- Write `scripts/lib/constants.ts` — verified contract addresses for ERC-8004 and ENSv2 on Sepolia
+- Write `scripts/lib/client.ts` — viem 2.56.x workaround for EIP-7702 overload resolution issue
+- Fix all TypeScript type errors across the script suite; configure `tsconfig.scripts.json`
+
+**AI-generated:** All script and contract code; `tsconfig.scripts.json`; all ABI definitions; ENSv2 contract
+addresses verified from `@ensdomains/ensjs` v5 dist files; permission JSON schema design.
+
+**Human-directed / reviewed:** Architecture decision (same-chain ENSv2 + SwapVM on Sepolia, eliminating
+cross-chain PermissionMirror); permission scope field names and bitmask mapping; decision to use ENSjs
+`commitName` / `registerName` action functions directly (not `.extend()` decorator) due to missing public
+export of `ensWalletActions`; all verification of contract addresses against live package sources.
+
+**Key technical issue resolved:** viem 2.56.x adds EIP-7702 overloads that cause TypeScript to resolve
+`readContract`/`writeContract` to the wrong discriminant when using broad `Abi` types. Fixed by wrapping
+both in `scripts/lib/client.ts` with `(client.readContract as any)(params)` pattern.
+
+**Spec files used:** `/specs/build-plan.md`

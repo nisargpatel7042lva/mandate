@@ -16,10 +16,10 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   parameter file exists in the repo and that the Aqua address can be set to our own deployment.
   **Blocking: Phase 2 (SwapVM router deployment).**
 
-- `[UNVERIFIED]` Cross-chain PermissionMirror may be unnecessary —
-  if we self-deploy both Aqua and our SwapVM router on Sepolia, ENSv2 and MandateGate are
-  on the same chain. Must confirm in Phase 1 and update ARCHITECTURE.md.
-  **Blocking: Phase 1 (architecture doc).**
+- `[RESOLVED]` Cross-chain PermissionMirror not needed for Phase 1 prototype —
+  both ENSv2 and our planned SwapVM router are on Sepolia. PermissionMirror.sol is kept
+  as a skeleton for the architecture demo but MandateGate will read directly from ENSv2
+  resolver on the same chain. ARCHITECTURE.md TBD update in Phase 2.
 
 ## SwapVM Opcodes
 
@@ -49,7 +49,13 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
 
 ## ENSv2 EAC Record Schema
 
-- `[UNVERIFIED]` Exact field names / storage keys for agent permission scope in ENSv2 EAC —
-  docs describe `_roles[resource][account]` bitmaps but do not specify the convention for
-  encoding "max position size", "allowed protocols", etc. into those fields.
-  **Blocking: Phase 1 (identity contract + permission record format).**
+- `[RESOLVED]` ENSv2 EAC is NOT used for permission encoding — we use standard ENS
+  `setText(node, key, value)` on the dedicated resolver. Keys are `mandate.permissions`
+  (JSON permission scope) and `mandate.policy` (human-readable summary). This avoids the
+  EAC bitmask schema uncertainty entirely and is readable by any ENS tooling.
+
+- `[VERIFIED]` ENSjs v5 contract addresses on Sepolia — verified from installed package
+  `dist/clients/l2.d.ts`: ethRegistrar=`0x3334...`, ensDedicatedResolver=`0xa20b...`,
+  ensV2EthRegistry=`0xF332...`, usdc=`0x7Fc2...`. Note: these differ from the L1-view
+  addresses in `dist/clients/chain.d.ts`. Using the L2 addresses throughout.
+  **Blocking: Phase 1 (registration script) — RESOLVED.**
