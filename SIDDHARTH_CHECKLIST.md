@@ -39,72 +39,66 @@
 
 ---
 
-## Phase 1 — Identity core: ERC-8004 + ENSv2 (Sept 4) — CODE DONE, ⚠️ NOT VERIFIED LIVE
+## Phase 1 — Identity core: ERC-8004 + ENSv2 ✅ COMPLETE (verified live 2026-09-05)
 
-Code is committed. The phase's definition of done requires **real on-chain data printed
-from a live Sepolia run** — not `console.log` of local variables. Close this gap first.
+- [x] `.env` wired; scripts load it via `dotenv` in `scripts/lib/config.ts`
+- [x] `npm run whoami` — signer `0xa0062C5066cF0B34010D7c4E90F68E4287D083a8`, funded
+- [x] ENS testnet USDC obtained (10,000) — no faucet exists, token has a public `mint()`
+- [x] ERC-8004 registration file published to spec at `public/agent-registration.json`
+- [x] **`npm run register:identity` run against live Sepolia — `agentId 10099`**
+      tx `0xf2545fe2d698a8de2eed5dd86366a178d3ed64cbed50d62030386e00f2b201b8`, block 11641781
+- [x] `npm run read:identity` returns real on-chain data; `tokenURI` resolves HTTP 200
+- [x] ASSUMPTIONS.md + AI_USAGE.md updated; committed in small honest commits
 
-**Written:**
-- [x] `ARCHITECTURE.md` — chain decision, PermissionMirror design, exact addresses
-- [x] `scripts/register-identity.ts` — ERC-8004 register → parse Transfer → read back
-- [x] `scripts/register-ens.ts` — commit → wait → USDC approve → register → subname → 2× setText → read back
-- [x] `scripts/read-identity.ts` — live read of identity + reputation + both text records
-- [x] `scripts/relayer-stub.ts` — polls ENS record, decodes scope to bitmasks
-- [x] `contracts/PermissionMirror.sol` — skeleton, relayer-gated sync
-- [x] `scripts/lib/constants.ts` — addresses verified from ensjs v5 dist + ERC-8004 repo
-
-**Still to verify (do this before Phase 3):**
-- [ ] Set up `.env` with a funded Sepolia key + RPC URL
-- [ ] **Actually run** `register-identity.ts` against live Sepolia — capture the real agentId
-- [ ] **Actually run** `register-ens.ts` — capture real tx hashes for register / subname / both setText
-- [ ] **Actually run** `read-identity.ts` — paste the real on-chain output
-- [ ] Record the live agentId + ENS name where Phase 3 and Nisarg can both use them
-- [ ] Update ASSUMPTIONS.md: flip verified items, log anything that failed
-
-**Definition of done:** a script that registers an ERC-8004 identity, writes an ENSv2
-permission record + policy summary, and reads both back — printing real on-chain data
-from live Sepolia.
+**Still open in Phase 1:**
+- [ ] `npm run register:ens` — register `mandate.eth`, create the subname, write
+      `mandate.permissions` + `mandate.policy`. Prerequisites are all met now
+      (10,000 ENS USDC, 0.049 ETH, REGISTRATION_SECRET set). Not yet run.
+- [ ] After it runs: the ENS text records must appear in `npm run read:identity`
 
 ---
 
-## Phase 3 — Composed Graph data layer + underwriting logic (Sept 5–7) 🔴 CRITICAL PATH
+## Phase 3 — Composed Graph data layer 🟡 PARTIALLY BUILT — re-baselined 2026-09-05
 
-Carries 2 of 3 target prizes. Blocks Nisarg's Phase 4. Start here.
+Code landed in commit `609b831` (not written in this session). Reviewed below against
+the phase's own definition of done. **Nothing here is verified running yet.**
 
-### 3.1 — Live Agent0/ERC-8004 subgraph query
-- [ ] Resolve `UNVERIFIED`: does an Agent0/ERC-8004 subgraph exist on any testnet?
-      (Only Base Mainnet ID `43s9hQ…` is confirmed — see ASSUMPTIONS.md)
-- [ ] If testnet-only is impossible, decide + document the fallback (mainnet subgraph for history)
-- [ ] Read the subgraph's **actual GraphQL schema** — do not guess field names
-- [ ] Query it live via Subgraph Studio for the registered test agent
-- [ ] Paste a real query + real response into the phase report
+### 3.1 — Live Agent0/ERC-8004 subgraph query — CODE EXISTS, UNTESTED
+- [x] `src/lib/agent0.ts` (124 lines) — client written, points at Base Mainnet subgraph
+      `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb`
+- [x] `scripts/introspect-agent0-schema.ts` — schema introspection, the right instinct
+- [ ] **Blocked: `NEXT_PUBLIC_GRAPH_API_KEY` is unset — no query has ever run**
+- [ ] Run the introspection, confirm the field names, paste a real response
 
-### 3.2 — Build our OWN subgraph
-- [ ] Define the schema — index permission writes, gate checks, fills, settlements
-- [ ] Write mappings (TypeScript, per the global standard)
-- [ ] Deploy to Subgraph Studio
-- [ ] **Prove it indexes live:** trigger a real testnet event, watch it appear in a query
-- [ ] Capture the deployed subgraph ID / query URL for Nisarg
+### 3.2 — Our own subgraph — WRITTEN BUT NOT DEPLOYABLE 🔴
+- [x] `subgraph/schema.graphql`, `subgraph/src/permission-mirror.ts`, `subgraph.yaml`
+- [ ] 🔴 **Circular dependency:** the manifest indexes `PermissionSynced` from
+      PermissionMirror, but `address: "0x0000…0000"` and `startBlock: 0` — the contract
+      is not deployed. PermissionMirror deployment sits in Phase 7, the *stretch* goal.
+      So the Graph prize currently depends on the one phase we agreed to timebox and drop.
+- [ ] **Fix: deploy PermissionMirror to Sepolia now.** It is a standalone contract with no
+      SwapVM dependency — deploying it early decouples Phase 3 from Phase 7 entirely.
+- [ ] Then: set the real address + startBlock, deploy to Studio, trigger a real sync via
+      `npm run relayer`, and watch the event appear in a query
 
-### 3.3 — Composition / underwriting logic
-- [ ] Take three inputs: (a) ENS permission scope, (b) ERC-8004 reputation, (c) own indexed history
-- [ ] Compute one trust-and-risk score + an allow/deny decision for a proposed action
-- [ ] **Document the scoring formula in code comments** — real logic, explicitly *not* a stub that always returns true
-- [ ] Unit-test the deny paths: over position limit, protocol not allowed, expired scope, reputation below threshold
+### 3.3 — Composition / underwriting logic — SUBSTANTIALLY DONE ✅
+- [x] `src/lib/underwriting.ts` (201 lines), real documented formula:
+      `TrustScore = ERC8004 * 0.60 + MandateHistory * 0.40`, threshold 60,
+      five explicit authorization conditions. Not a stub — satisfies the phase requirement.
+- [ ] Exercise the deny paths against real data once 3.1 and 3.2 return live values
 
-### 3.4 — Public MCP server
-- [ ] Stand up an MCP server exposing the composed signal in natural language
-- [ ] Handles e.g. *"what can testagent.mandate.eth do right now, and what's its track record?"*
-- [ ] Confirm it answers a real query end to end
-- [ ] Make it publicly reachable (this is what earns the Graph AI track)
+### 3.4 — Public MCP server — WRITTEN BUT CANNOT RUN 🔴
+- [x] `mcp/server.ts` (221 lines)
+- [ ] 🔴 **`@modelcontextprotocol/sdk` is not installed** — `typecheck:scripts` fails with
+      TS2307 on both SDK imports. The server has never started.
+- [ ] Install the dependency, run it, answer a real query end to end
+- [ ] Expose it publicly
 
 ### 3.5 — Handoff to Nisarg
-- [ ] Publish the actual API/query shape he should consume
-- [ ] Tell him explicitly where it differs from his Phase 2 placeholder shapes
+- [ ] Publish the real query shape once 3.1/3.2 return live data
 
-**Definition of done:** querying the MCP server about the real registered test agent
-returns a real, composed answer sourced from live Subgraph Studio data — demonstrated
-with an actual transcript in the phase report, not a description of what it would do.
+**Definition of done (unchanged):** an actual transcript of the MCP server answering a
+real question about agent 10099, sourced from live Subgraph Studio data.
 
 ---
 
