@@ -92,12 +92,15 @@ the phase's own definition of done. **Nothing here is verified running yet.**
       five explicit authorization conditions. Not a stub — satisfies the phase requirement.
 - [ ] Exercise the deny paths against real data once 3.1 and 3.2 return live values
 
-### 3.4 — MCP server — ✅ RUNNING, ANSWERS LIVE QUERIES
-- [x] `mcp/server.ts` (221 lines)
-- [ ] 🔴 **`@modelcontextprotocol/sdk` is not installed** — `typecheck:scripts` fails with
-      TS2307 on both SDK imports. The server has never started.
-- [ ] Install the dependency, run it, answer a real query end to end
-- [ ] Expose it publicly
+### 3.4 — MCP server — ⚠️ WORKS LOCALLY, NOT YET PUBLIC
+- [x] `mcp/server.ts` — three tools: get_agent_authority, check_permission, get_risk_score
+- [x] `@modelcontextprotocol/sdk` 1.30.0 installed; typechecks clean
+- [x] Verified end to end on `localhost:3001`: /health, initialize (protocol
+      2025-06-18), tools/list, and all three tools returning live composed data
+- [x] Authorized / not-allowlisted / over-position-limit / over-daily-cap all correct
+- [ ] 🔴 **Expose it publicly** — the Graph AI track asks for a public MCP server.
+      Right now it only runs on localhost and nothing is hosting it. A judge
+      cannot reach it, so this sub-item is what stands between us and that track.
 
 ### 3.5 — Handoff to Nisarg
 - [ ] Publish the real query shape once 3.1/3.2 return live data
