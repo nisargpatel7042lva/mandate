@@ -50,11 +50,16 @@
 - [x] `npm run read:identity` returns real on-chain data; `tokenURI` resolves HTTP 200
 - [x] ASSUMPTIONS.md + AI_USAGE.md updated; committed in small honest commits
 
-**Still open in Phase 1:**
-- [ ] `npm run register:ens` — register `mandate.eth`, create the subname, write
-      `mandate.permissions` + `mandate.policy`. Prerequisites are all met now
-      (10,000 ENS USDC, 0.049 ETH, REGISTRATION_SECRET set). Not yet run.
-- [ ] After it runs: the ENS text records must appear in `npm run read:identity`
+**ENSv2 — complete, verified live:**
+- [x] `mandate.eth` registered — tx `0xd0762cc8…`, block 11641955, 7.994534 USDC
+- [x] Subregistry deployed + attached — `0x907779eaec2f678bf91c2580b2fd8b395cf42775`
+- [x] `testagent.mandate.eth` created — tx `0x5196898a…`, block 11641992
+- [x] Dedicated resolver deployed — `0x47199acbb8cf8766c67a4853574e945c8e795005`
+- [x] `mandate.permissions` + `mandate.policy` written and read back from chain
+- [x] `npm run read:identity` shows the full record end to end
+
+**Phase 1 is closed. ENS track requirement met: ENSv2 central to the product,
+functional demo, no hard-coded values.**
 
 ---
 
