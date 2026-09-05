@@ -5,8 +5,8 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy mandate-subgraph --node https://api.studio.thegraph.com/deploy/ --ipfs https://ipfs.satsuma.xyz",
-    "deploy:studio": "graph deploy mandate-subgraph --node https://api.studio.thegraph.com/deploy/"
+    "deploy": "graph deploy mandate-subgraph --node https://api.studio.thegraph.com/deploy/",
+    "deploy:studio": "graph deploy mandate-subgraph --node https://api.studio.thegraph.com/deploy/ --version-label v0.0.1"
   },
   "dependencies": {
     "@graphprotocol/graph-ts": "^0.35.1"
