@@ -68,7 +68,7 @@ functional demo, no hard-coded values.**
 Code landed in commit `609b831` (not written in this session). Reviewed below against
 the phase's own definition of done. **Nothing here is verified running yet.**
 
-### 3.1 — Live Agent0/ERC-8004 subgraph query — CODE EXISTS, UNTESTED
+### 3.1 — Live Agent0/ERC-8004 subgraph query — ✅ WORKING ON LIVE DATA
 - [x] `src/lib/agent0.ts` (124 lines) — client written, points at Base Mainnet subgraph
       `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb`
 - [x] `scripts/introspect-agent0-schema.ts` — schema introspection, the right instinct
@@ -86,7 +86,7 @@ the phase's own definition of done. **Nothing here is verified running yet.**
 - [ ] Then: set the real address + startBlock, deploy to Studio, trigger a real sync via
       `npm run relayer`, and watch the event appear in a query
 
-### 3.3 — Composition / underwriting logic — SUBSTANTIALLY DONE ✅
+### 3.3 — Composition / underwriting logic — ✅ RUNS ON LIVE COMPOSED DATA
 - [x] `src/lib/underwriting.ts` (201 lines), real documented formula:
       `TrustScore = ERC8004 * 0.60 + MandateHistory * 0.40`, threshold 60,
       five explicit authorization conditions. Not a stub — satisfies the phase requirement.

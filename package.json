@@ -17,7 +17,8 @@
     "create:subname": "tsx scripts/create-subname.ts",
     "set:permissions": "tsx scripts/set-permissions.ts",
     "build:contracts": "forge build",
-    "deploy:mirror": "tsx scripts/deploy-permission-mirror.ts"
+    "deploy:mirror": "tsx scripts/deploy-permission-mirror.ts",
+    "underwrite": "tsx scripts/underwrite.ts"
   },
   "dependencies": {
     "@ensdomains/ensjs": "^5.0.0-sepolia-fix.1",

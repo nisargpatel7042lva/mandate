@@ -1,125 +1,253 @@
 // Agent0 / ERC-8004 Subgraph client
-// Queries the official Agent0 subgraph on Base Mainnet via Subgraph Studio.
 //
-// IMPORTANT: Field names here were confirmed against the live schema introspection
-// at https://api.studio.thegraph.com/query/<DEPLOYMENT_ID>/graphql
-// (see introspect-agent0-schema.ts in scripts/ for the verification script).
-// Do NOT rename fields without re-running the introspection — guessing schema
-// names is the most likely way to break the Graph track requirement.
+// Field names below were confirmed against the live schema by introspection on
+// 2026-09-06 (`npx tsx scripts/introspect-agent0-schema.ts`). Do NOT rename them
+// without re-running it — the earlier version of this file used plausible-looking
+// names (`tokenId`, `uri`, `registeredAt`, an `agentReputation` entity) that do
+// not exist, and every call threw.
+//
+// Scope of this subgraph, verified live: it indexes exactly one protocol,
+// Base Mainnet (chainId 8453, identityRegistry 0x8004a169...). Our own agent is
+// on Sepolia (11155111, registry 0x8004A818...) and therefore has no row here.
+// So Agent0 is used for what it can actually answer: the live ERC-8004
+// population, as a baseline to contextualise our own agent's record.
 
-const AGENT0_ENDPOINT = process.env.NEXT_PUBLIC_GRAPH_API_KEY
-  ? `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_GRAPH_API_KEY}/subgraphs/id/${process.env.NEXT_PUBLIC_AGENT0_SUBGRAPH_ID}`
-  : null
-
-export interface Agent0Identity {
-  id: string
-  tokenId: string
-  owner: string
-  agentWallet: string
-  uri: string
-  registeredAt: string
+// Resolved per call rather than at module load: a module-level read runs before
+// dotenv has populated process.env in script entrypoints, which silently yields
+// a null endpoint and makes every query look like "no data".
+function agent0Endpoint(): string | null {
+  const id = process.env.NEXT_PUBLIC_AGENT0_SUBGRAPH_ID
+  const key = process.env.NEXT_PUBLIC_GRAPH_API_KEY
+  return key && id ? `https://gateway.thegraph.com/api/${key}/subgraphs/id/${id}` : null
 }
 
-export interface Agent0Reputation {
+/** The chain this subgraph indexes. Anything else returns no rows. */
+export const AGENT0_INDEXED_CHAIN_ID = '8453'
+
+// ─── Types (mirror the live schema) ──────────────────────────────────────────
+
+export interface Agent0Agent {
+  id: string // "<chainId>:<agentId>"
+  chainId: string
+  agentId: string
+  agentURI: string | null
+  owner: string
+  agentWallet: string
+  createdAt: string
+  lastActivity: string | null
+  totalFeedback: string
+}
+
+export interface Agent0Feedback {
   id: string
-  agent: { id: string }
-  score: string
-  successfulDecisions: string
-  totalDecisions: string
-  lastUpdated: string
+  value: string // BigDecimal
+  tag1: string | null
+  tag2: string | null
+  isRevoked: boolean
+  clientAddress: string
+  createdAt: string
+}
+
+/** Derived reputation signal — computed here, not a subgraph field. */
+export interface Agent0Reputation {
+  found: boolean
+  totalFeedback: number
+  sampled: number
+  distinctClients: number
+  meanValue: number
+  revokedCount: number
+  revocationRate: number
+  lastActivity: number | null
+}
+
+/** Live ecosystem baseline used to contextualise a single agent. */
+export interface Agent0Population {
+  sampleSize: number
+  feedbackCounts: number[]
+  medianFeedback: number
 }
 
 export interface Agent0AgentData {
-  identity: Agent0Identity | null
-  reputation: Agent0Reputation | null
+  identity: Agent0Agent | null
+  reputation: Agent0Reputation
+  population: Agent0Population | null
 }
 
-// Schema introspection is run once; this tracks whether we've confirmed field names.
-// Run `npx tsx scripts/introspect-agent0-schema.ts` to regenerate.
-const SCHEMA_VERIFIED = false // set to true after running introspection
+// ─── Transport ───────────────────────────────────────────────────────────────
 
-if (!SCHEMA_VERIFIED && process.env.NODE_ENV === 'development') {
-  console.warn(
-    '[agent0] Schema not yet verified against live subgraph. ' +
-    'Run: npx tsx scripts/introspect-agent0-schema.ts'
-  )
-}
-
-async function gqlFetch<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-  if (!AGENT0_ENDPOINT) {
-    throw new Error('NEXT_PUBLIC_GRAPH_API_KEY and NEXT_PUBLIC_AGENT0_SUBGRAPH_ID must be set')
+async function gqlFetch<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
+  const endpoint = agent0Endpoint()
+  if (!endpoint) {
+    throw new Error(
+      'NEXT_PUBLIC_GRAPH_API_KEY and NEXT_PUBLIC_AGENT0_SUBGRAPH_ID must be set',
+    )
   }
 
-  const res = await fetch(AGENT0_ENDPOINT, {
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),
-    // next.revalidate is a Next.js fetch extension; ignored in non-Next.js runtimes (MCP server)
+    // next.revalidate is a Next.js fetch extension; ignored in other runtimes.
     ...({ next: { revalidate: 60 } } as object),
   } as RequestInit)
 
-  if (!res.ok) {
-    throw new Error(`Agent0 subgraph HTTP ${res.status}: ${await res.text()}`)
-  }
+  if (!res.ok) throw new Error(`Agent0 subgraph HTTP ${res.status}: ${await res.text()}`)
 
   const json = (await res.json()) as { data?: T; errors?: Array<{ message: string }> }
   if (json.errors?.length) {
-    throw new Error(`Agent0 subgraph GraphQL errors: ${json.errors.map(e => e.message).join(', ')}`)
+    throw new Error(`Agent0 subgraph GraphQL errors: ${json.errors.map((e) => e.message).join(', ')}`)
   }
-  if (!json.data) {
-    throw new Error('Agent0 subgraph returned empty data')
-  }
-
+  if (!json.data) throw new Error('Agent0 subgraph returned empty data')
   return json.data
 }
 
-// Query the agent's on-chain identity from the ERC-8004 IdentityRegistry subgraph.
-// Field names are the ERC-8004 standard fields; confirm with introspection before use.
-export async function fetchAgent0Identity(agentAddress: string): Promise<Agent0Identity | null> {
+/** Agent ids are composite: "<chainId>:<agentId>". */
+export const agent0Key = (chainId: string | number, agentId: string | number) =>
+  `${chainId}:${agentId}`
+
+// ─── Queries ─────────────────────────────────────────────────────────────────
+
+export async function fetchAgent0Agent(
+  chainId: string | number,
+  agentId: string | number,
+): Promise<Agent0Agent | null> {
   const query = `
     query AgentIdentity($id: ID!) {
       agent(id: $id) {
         id
-        tokenId
+        chainId
+        agentId
+        agentURI
         owner
         agentWallet
-        uri
-        registeredAt
+        createdAt
+        lastActivity
+        totalFeedback
       }
     }
   `
-  const data = await gqlFetch<{ agent: Agent0Identity | null }>(query, {
-    id: agentAddress.toLowerCase(),
+  const data = await gqlFetch<{ agent: Agent0Agent | null }>(query, {
+    id: agent0Key(chainId, agentId),
   })
   return data.agent
 }
 
-// Query the agent's reputation score from the ERC-8004 ReputationRegistry subgraph.
-// The reputation entity uses the agent address as its ID; confirm with introspection.
-export async function fetchAgent0Reputation(agentAddress: string): Promise<Agent0Reputation | null> {
+export async function fetchAgent0Feedback(
+  chainId: string | number,
+  agentId: string | number,
+  limit = 100,
+): Promise<Agent0Feedback[]> {
   const query = `
-    query AgentReputation($id: ID!) {
-      agentReputation(id: $id) {
+    query AgentFeedback($agent: String!, $limit: Int!) {
+      feedbacks(
+        first: $limit
+        where: { agent: $agent }
+        orderBy: createdAt
+        orderDirection: desc
+      ) {
         id
-        agent { id }
-        score
-        successfulDecisions
-        totalDecisions
-        lastUpdated
+        value
+        tag1
+        tag2
+        isRevoked
+        clientAddress
+        createdAt
       }
     }
   `
-  const data = await gqlFetch<{ agentReputation: Agent0Reputation | null }>(query, {
-    id: agentAddress.toLowerCase(),
+  const data = await gqlFetch<{ feedbacks: Agent0Feedback[] }>(query, {
+    agent: agent0Key(chainId, agentId),
+    limit,
   })
-  return data.agentReputation
+  return data.feedbacks ?? []
 }
 
-// Combined fetch — identity + reputation in one round trip.
-export async function fetchAgent0Data(agentAddress: string): Promise<Agent0AgentData> {
-  const [identity, reputation] = await Promise.all([
-    fetchAgent0Identity(agentAddress).catch(() => null),
-    fetchAgent0Reputation(agentAddress).catch(() => null),
+/**
+ * A live sample of the ERC-8004 population, used as a reference distribution.
+ * Ordered by activity so the sample spans the active end of the ecosystem.
+ */
+export async function fetchAgent0Population(sampleSize = 100): Promise<Agent0Population> {
+  const query = `
+    query Population($limit: Int!) {
+      agents(first: $limit, orderBy: totalFeedback, orderDirection: desc) {
+        totalFeedback
+      }
+    }
+  `
+  const data = await gqlFetch<{ agents: Array<{ totalFeedback: string }> }>(query, {
+    limit: sampleSize,
+  })
+  const counts = (data.agents ?? []).map((a) => Number(a.totalFeedback)).sort((a, b) => a - b)
+  const median = counts.length ? counts[Math.floor(counts.length / 2)] : 0
+  return { sampleSize: counts.length, feedbackCounts: counts, medianFeedback: median }
+}
+
+// ─── Derivation ──────────────────────────────────────────────────────────────
+
+/**
+ * Reduce raw feedback rows to a reputation signal.
+ *
+ * Distinct clients matters more than raw volume: one counterparty can emit an
+ * unlimited number of positive rows, so a high count from a single address is a
+ * sybil pattern rather than evidence of trust. Both are reported so the caller
+ * can weigh them.
+ */
+export function deriveReputation(
+  agent: Agent0Agent | null,
+  feedback: Agent0Feedback[],
+): Agent0Reputation {
+  if (!agent) {
+    return {
+      found: false,
+      totalFeedback: 0,
+      sampled: 0,
+      distinctClients: 0,
+      meanValue: 0,
+      revokedCount: 0,
+      revocationRate: 0,
+      lastActivity: null,
+    }
+  }
+
+  const live = feedback.filter((f) => !f.isRevoked)
+  const revoked = feedback.length - live.length
+  const meanValue = live.length
+    ? live.reduce((sum, f) => sum + Number(f.value), 0) / live.length
+    : 0
+
+  return {
+    found: true,
+    totalFeedback: Number(agent.totalFeedback),
+    sampled: feedback.length,
+    distinctClients: new Set(feedback.map((f) => f.clientAddress.toLowerCase())).size,
+    meanValue,
+    revokedCount: revoked,
+    revocationRate: feedback.length ? revoked / feedback.length : 0,
+    lastActivity: agent.lastActivity ? Number(agent.lastActivity) : null,
+  }
+}
+
+/** Percentile of `value` within the sampled population, 0–100. */
+export function percentileOf(value: number, population: Agent0Population): number {
+  if (!population.sampleSize) return 0
+  const below = population.feedbackCounts.filter((c) => c <= value).length
+  return Math.round((below / population.sampleSize) * 100)
+}
+
+// ─── Combined fetch ──────────────────────────────────────────────────────────
+
+export async function fetchAgent0Data(
+  chainId: string | number,
+  agentId: string | number,
+): Promise<Agent0AgentData> {
+  const [identity, population] = await Promise.all([
+    fetchAgent0Agent(chainId, agentId).catch(() => null),
+    fetchAgent0Population().catch(() => null),
   ])
-  return { identity, reputation }
+
+  const feedback = identity
+    ? await fetchAgent0Feedback(chainId, agentId).catch(() => [])
+    : []
+
+  return { identity, reputation: deriveReputation(identity, feedback), population }
 }

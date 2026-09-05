@@ -67,6 +67,39 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   resolves for subgraphs published to the decentralized network, which this is not.
   `NEXT_PUBLIC_MANDATE_SUBGRAPH_URL` carries the studio URL.
 
+## Agent0 / ERC-8004 Subgraph — resolved 2026-09-06
+
+- `[RESOLVED]` The subgraph indexes exactly one protocol: Base Mainnet (chainId
+  8453, identityRegistry `0x8004a169...`, reputationRegistry `0x8004baa1...`).
+  Queried `protocols` directly — one row. `agents(where: {chainId_not: "8453"})`
+  returns zero rows, and the subgraph head block tracks Base (50,920,586 against
+  Base's 50,920,596), not Sepolia (11.6M) or mainnet (25.9M). Our agent is on
+  Sepolia against a different registry address, so it has no row there and cannot
+  acquire one without registering on Base.
+
+- `[RESOLVED]` The previous `agent0.ts` queried fields that do not exist —
+  `tokenId`, `uri`, `registeredAt`, and an `agentReputation` entity. Every call
+  threw. The file declared `SCHEMA_VERIFIED = false` and was correct to. Real
+  schema, confirmed by introspection: `Agent { id, chainId, agentId, agentURI,
+  owner, agentWallet, createdAt, lastActivity, totalFeedback }` with ids in the
+  composite form `"<chainId>:<agentId>"`; reputation lives in `Feedback { value,
+  tag1, tag2, isRevoked, clientAddress, createdAt }`.
+
+- `[RESOLVED]` Absence of an Agent0 record is no longer scored as zero. Scoring
+  it zero asserts "bad" where we only know "unknown" and denied every trade,
+  including the demo happy path. The weights renormalise onto the components that
+  do have evidence, and the gap is disclosed in the decision's `reasons`.
+
+- `[NOTE]` Raw feedback volume is a weak trust signal: the most-active indexed
+  agent (8453:25975) has 308,874 feedback entries from **2 distinct client
+  addresses**. The scoring therefore weights distinct counterparties (40) above
+  value quality (30), revocation health (20) and activity percentile (10).
+
+- `[RESOLVED]` Both subgraph clients resolved their endpoint at module load, which
+  runs before dotenv populates process.env in script entrypoints — the endpoint
+  came out null and every query looked like "no data" rather than a config error.
+  Endpoints are now resolved per call.
+
 ## The Graph
 
 - `[UNVERIFIED]` Agent0/ERC-8004 subgraph deployment on Sepolia or any testnet —
