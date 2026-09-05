@@ -29,6 +29,28 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   virtual function MandateGate must override.
   **Blocking: Phase 2 (MandateGate implementation).**
 
+## PermissionMirror (Sepolia)
+
+- `[RESOLVED]` Deployed at `0x6f19dd6f759fac8a19579ecdefb342009a21d9a7`, block
+  11642041 (tx `0x37fb017a…`), relayer set to the project signer. Compiled with
+  Foundry 1.5.0 / solc 0.8.30; `foundry.toml` points `src` at `contracts/`.
+
+- `[RESOLVED]` Deploying this in Phase 1 rather than alongside MandateGate removes
+  a dependency inversion: the Mandate subgraph indexes this contract's
+  `PermissionSynced` events, so the Graph track would otherwise have depended on
+  the SwapVM phase, which is explicitly timeboxed and may be dropped.
+
+- `[VERIFIED]` Full ENS -> mirror pipeline runs live. `npm run relayer` reads
+  `mandate.permissions` from the ENSv2 resolver, decodes it to bitmasks, and calls
+  `sync()`. Confirmed on-chain: `isAuthorized(agent)` = true, `allowedProtocols` =
+  7 (uniswap-v3 | curve | aave-v3), `allowedPositionTypes` = 3 (spot | lp),
+  maxPosition 10,000 USDC, maxDaily 50,000 USDC, `syncedAtBlock` 11642045.
+  Sync tx `0x7868486e…`.
+
+- `[VERIFIED]` The subgraph's `PermissionSynced` ABI matches the deployed
+  contract's event signature exactly, and `graph build` succeeds against the real
+  address and start block. Not yet deployed to Subgraph Studio.
+
 ## The Graph
 
 - `[UNVERIFIED]` Agent0/ERC-8004 subgraph deployment on Sepolia or any testnet —

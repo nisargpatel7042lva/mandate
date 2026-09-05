@@ -33,3 +33,20 @@ export function readContract<T = unknown>(client: any, params: ContractReadParam
 export function writeContract(client: any, params: ContractWriteParams): Promise<Hash> {
   return client.writeContract(params) as Promise<Hash>
 }
+
+export interface ContractDeployParams {
+  abi: unknown
+  bytecode: `0x${string}`
+  args?: unknown[]
+  chain?: unknown
+  account?: unknown
+}
+
+/**
+ * Same overload problem as above: without a narrowed ABI, TypeScript resolves
+ * deployContract to the blob-transaction discriminant and demands `kzg`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deployContract(client: any, params: ContractDeployParams): Promise<Hash> {
+  return client.deployContract(params) as Promise<Hash>
+}

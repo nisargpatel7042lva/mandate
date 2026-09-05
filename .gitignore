@@ -47,3 +47,7 @@ bun.lock
 /subgraph/build
 /subgraph/generated
 /subgraph/node_modules
+
+# foundry build output
+/out
+/cache

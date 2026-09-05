@@ -8,12 +8,11 @@ dataSources:
     name: PermissionMirror
     network: sepolia
     source:
-      # Placeholder — replace with the deployed address after Phase 4 contract deployment.
-      # The contract emits PermissionSynced on every relayer sync call.
-      address: "0x0000000000000000000000000000000000000000"
+      # Deployed 2026-09-05, tx 0x37fb017a...
+      address: "0x6f19dd6f759fac8a19579ecdefb342009a21d9a7"
       abi: PermissionMirror
-      # Start block: set to the block containing the deploy tx once deployed
-      startBlock: 0
+      # Block containing the deploy tx — nothing to index before it
+      startBlock: 11642041
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

@@ -42,6 +42,10 @@ const PERMISSION_MIRROR_ADDRESS = optionalEnv(
 
 const rpcUrl = getRpcUrl()
 
+// ENSv2 resolvers are per-name; ENS_RESOLVER_ADDRESS is the instance deployed
+// for our agent's subname by set-permissions.ts.
+const RESOLVER = optionalEnv('ENS_RESOLVER_ADDRESS', ENS_PUBLIC_RESOLVER_SEPOLIA) as Address
+
 const publicClient = createPublicClient({
   chain: sepolia,
   transport: http(rpcUrl),
@@ -134,7 +138,7 @@ async function fetchAndSync() {
   const node = namehash(AGENT_ENS_NAME)
 
   const raw = await readContract<string>(publicClient, {
-    address: ENS_PUBLIC_RESOLVER_SEPOLIA,
+    address: RESOLVER,
     abi: PUBLIC_RESOLVER_ABI,
     functionName: 'text',
     args: [node, MANDATE_PERMISSIONS_KEY],
