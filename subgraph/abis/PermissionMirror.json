@@ -1,0 +1,105 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [{ "name": "_relayer", "type": "address", "internalType": "address" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getPermissions",
+    "inputs": [{ "name": "agent", "type": "address", "internalType": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PermissionMirror.PermissionScope",
+        "components": [
+          { "name": "allowedProtocols", "type": "uint256", "internalType": "uint256" },
+          { "name": "allowedPositionTypes", "type": "uint8", "internalType": "uint8" },
+          { "name": "maxPositionSizeUsdc", "type": "uint128", "internalType": "uint128" },
+          { "name": "maxDailySpendUsdc", "type": "uint128", "internalType": "uint128" },
+          { "name": "expiry", "type": "uint64", "internalType": "uint64" },
+          { "name": "ensNode", "type": "bytes32", "internalType": "bytes32" },
+          { "name": "syncedAtBlock", "type": "uint64", "internalType": "uint64" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isAuthorized",
+    "inputs": [{ "name": "agent", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "relayer",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setRelayer",
+    "inputs": [{ "name": "_relayer", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sync",
+    "inputs": [
+      { "name": "agent", "type": "address", "internalType": "address" },
+      {
+        "name": "scope",
+        "type": "tuple",
+        "internalType": "struct PermissionMirror.PermissionScope",
+        "components": [
+          { "name": "allowedProtocols", "type": "uint256", "internalType": "uint256" },
+          { "name": "allowedPositionTypes", "type": "uint8", "internalType": "uint8" },
+          { "name": "maxPositionSizeUsdc", "type": "uint128", "internalType": "uint128" },
+          { "name": "maxDailySpendUsdc", "type": "uint128", "internalType": "uint128" },
+          { "name": "expiry", "type": "uint64", "internalType": "uint64" },
+          { "name": "ensNode", "type": "bytes32", "internalType": "bytes32" },
+          { "name": "syncedAtBlock", "type": "uint64", "internalType": "uint64" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "PermissionSynced",
+    "inputs": [
+      { "name": "agent", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "ensNode", "type": "bytes32", "indexed": true, "internalType": "bytes32" },
+      { "name": "syncedAtBlock", "type": "uint64", "indexed": false, "internalType": "uint64" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RelayerUpdated",
+    "inputs": [
+      { "name": "oldRelayer", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "newRelayer", "type": "address", "indexed": true, "internalType": "address" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "OnlyRelayer",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PermissionExpired",
+    "inputs": [
+      { "name": "agent", "type": "address", "internalType": "address" },
+      { "name": "expiry", "type": "uint64", "internalType": "uint64" }
+    ]
+  }
+]

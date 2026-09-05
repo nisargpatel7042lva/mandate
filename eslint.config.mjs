@@ -12,8 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Scripts are standalone Node.js — linted separately, not by Next.js rules:
+    // Scripts and MCP server are standalone Node.js — linted separately, not by Next.js rules:
     "scripts/**",
+    "mcp/**",
+    "subgraph/**",
   ]),
 ]);
 

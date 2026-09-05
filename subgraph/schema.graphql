@@ -1,0 +1,52 @@
+type AgentScope @entity {
+  "agent address (lowercase hex)"
+  id: ID!
+
+  "bitmask of allowed protocol IDs (bit 0 = uniswap-v3, bit 1 = curve, bit 2 = aave-v3, bit 3 = 1inch)"
+  allowedProtocols: BigInt!
+
+  "bitmask of allowed position types (bit 0 = spot, bit 1 = lp, bit 2 = perp)"
+  allowedPositionTypes: Int!
+
+  "maximum single position size in USDC (6 decimals)"
+  maxPositionSizeUsdc: BigInt!
+
+  "maximum total spend per UTC day in USDC (6 decimals)"
+  maxDailySpendUsdc: BigInt!
+
+  "unix timestamp after which this permission record is invalid"
+  expiry: BigInt!
+
+  "ENSv2 namehash of the agent's subname"
+  ensNode: Bytes!
+
+  "block number of the most recent sync"
+  lastSyncedBlock: BigInt!
+
+  "timestamp of the most recent sync"
+  lastSyncedAt: BigInt!
+
+  "total number of permission syncs for this agent"
+  syncCount: Int!
+
+  "history of all syncs (newest first)"
+  updates: [PermissionUpdate!]! @derivedFrom(field: "agent")
+}
+
+type PermissionUpdate @entity {
+  "tx hash + log index"
+  id: ID!
+
+  agent: AgentScope!
+
+  allowedProtocols: BigInt!
+  allowedPositionTypes: Int!
+  maxPositionSizeUsdc: BigInt!
+  maxDailySpendUsdc: BigInt!
+  expiry: BigInt!
+  ensNode: Bytes!
+
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

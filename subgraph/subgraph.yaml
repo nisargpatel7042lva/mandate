@@ -1,0 +1,30 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: PermissionMirror
+    network: sepolia
+    source:
+      # Placeholder — replace with the deployed address after Phase 4 contract deployment.
+      # The contract emits PermissionSynced on every relayer sync call.
+      address: "0x0000000000000000000000000000000000000000"
+      abi: PermissionMirror
+      # Start block: set to the block containing the deploy tx once deployed
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - AgentScope
+        - PermissionUpdate
+      abis:
+        - name: PermissionMirror
+          file: ./abis/PermissionMirror.json
+      eventHandlers:
+        - event: PermissionSynced(indexed address,indexed bytes32,uint64)
+          handler: handlePermissionSynced
+      file: ./src/permission-mirror.ts
