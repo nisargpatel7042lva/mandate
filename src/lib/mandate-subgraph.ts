@@ -1,12 +1,19 @@
 // Mandate own subgraph client — queries our deployed Mandate subgraph on Subgraph Studio.
 // Indexes PermissionSynced events from the PermissionMirror contract on Sepolia.
 
+// A Studio development deployment is queried at its own studio URL and needs no
+// API key. The gateway URL below only works once a subgraph is *published* to
+// the decentralized network, which we have not done — so prefer the explicit
+// studio URL and fall back to the gateway if a published id is ever supplied.
+const MANDATE_SUBGRAPH_URL = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_URL
 const MANDATE_SUBGRAPH_ID = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_ID
 const GRAPH_API_KEY = process.env.NEXT_PUBLIC_GRAPH_API_KEY
 
-const MANDATE_ENDPOINT = GRAPH_API_KEY && MANDATE_SUBGRAPH_ID
-  ? `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${MANDATE_SUBGRAPH_ID}`
-  : null
+const MANDATE_ENDPOINT = MANDATE_SUBGRAPH_URL
+  ? MANDATE_SUBGRAPH_URL
+  : GRAPH_API_KEY && MANDATE_SUBGRAPH_ID
+    ? `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${MANDATE_SUBGRAPH_ID}`
+    : null
 
 export interface MandateAgentScope {
   id: string
