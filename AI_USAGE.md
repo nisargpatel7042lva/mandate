@@ -62,3 +62,44 @@ export of `ensWalletActions`; all verification of contract addresses against liv
 both in `scripts/lib/client.ts` with `(client.readContract as any)(params)` pattern.
 
 **Spec files used:** `/specs/build-plan.md`
+
+### 2026-09-05 | UI | Phase 2
+
+**Task:** Design system + four core screens — fully static with marked example data.
+
+**Claude Code was asked to:**
+- Create the design system: Tailwind v4 CSS tokens (dark-first, light mode class-toggled),
+  semantic color variables (--bg, --surface, --surface-2/3, --text/2/3, --border, --brand),
+  status/tier colors; no shadcn, pure CSS custom properties
+- Build `src/components/ui/Badge.tsx` — Badge variants (success, warning, danger, brand,
+  neutral, monitoring, autonomous), StatusBadge, TierBadge
+- Build `src/components/ui/Card.tsx` — Card with optional accent border, CardHeader, CardTitle, CardBody
+- Build `src/components/layout/Sidebar.tsx` — client nav component with ThemeToggle (toggles
+  `.dark` on `document.documentElement`)
+- Build `src/components/dashboard/KillSwitch.tsx` — animated 3-state demo component (idle →
+  confirm dialog → revoking spinner → revoked state)
+- Build `src/components/dashboard/TradeLog.tsx` — filterable table (all/approved/blocked)
+- Build `src/app/page.tsx` — Screen A: agent overview (trust score, permission scope cards,
+  stats, recent activity, on-chain identity)
+- Build `src/app/dashboard/page.tsx` — Screen B: underwriting dashboard (sticky policy strip
+  showing ✓ Allowed / ✕ Not Authorized / Scope Validity, KillSwitch, spend meter, TradeLog)
+- Build `src/app/transactions/blocked/page.tsx` — Screen C: blocked transaction detail (hero
+  "why it failed" moment, enforcement chain trace)
+- Build `src/app/treasury/page.tsx` — Screen D: treasury view (SVG ring charts, settlement
+  history table, reputation write-back placeholder)
+- Build `src/lib/types.ts` — TypeScript types for Agent, PermissionScope, TradeDecision,
+  BlockedTransaction, Settlement, TreasuryState
+- Build `src/lib/example-data.ts` — realistic example data with EXAMPLE_DATA markers
+  throughout; utility functions (shortAddr, fmtUsdc, fmtExpiry, fmtTime)
+- Fix ESLint/build issues: unused imports, raw `<a>` for internal nav (replaced with Next.js
+  `<Link>`), `Date.now()` in server component body (hoisted to module-level constant)
+
+**AI-generated:** All component and page code; design token values; example data shape; all
+SVG ring chart math; enforcement chain trace UI; policy strip layout.
+
+**Human-directed / reviewed:** The four-screen structure and what each screen communicates;
+the decision that "why it blocked" should be the H1 hero element, not a detail row; the
+policy strip (allowed / blocked / expiry) as the first fixed element of the dashboard;
+the EXAMPLE_DATA banner requirement (must be unmistakably marked, never implied as real).
+
+**Spec files used:** `/specs/phase2-ui.md`
