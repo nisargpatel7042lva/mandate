@@ -90,15 +90,14 @@ the phase's own definition of done. **Nothing here is verified running yet.**
       five explicit authorization conditions. Not a stub — satisfies the phase requirement.
 - [x] All four paths verified live: authorized, not-allowlisted, over-position, over-daily-cap
 
-### 3.4 — MCP server — ⚠️ WORKS LOCALLY, NOT YET PUBLIC
+### 3.4 — MCP server — ✅ PUBLIC AND ANSWERING LIVE QUERIES
 - [x] `mcp/server.ts` — three tools: get_agent_authority, check_permission, get_risk_score
 - [x] `@modelcontextprotocol/sdk` 1.30.0 installed; typechecks clean
 - [x] Verified end to end on `localhost:3001`: /health, initialize (protocol
       2025-06-18), tools/list, and all three tools returning live composed data
 - [x] Authorized / not-allowlisted / over-position-limit / over-daily-cap all correct
-- [ ] 🔴 **Expose it publicly** — the Graph AI track asks for a public MCP server.
-      Right now it only runs on localhost and nothing is hosting it. A judge
-      cannot reach it, so this sub-item is what stands between us and that track.
+- [x] **Public at `https://mandate-rho.vercel.app/api/mcp`** — served from the
+      Next.js app so it ships with the frontend. Verified live end to end.
 
 ### 3.5 — Handoff to Nisarg
 - [ ] Publish the real query shape to Nisarg — MCP endpoint + composeRiskScore signature

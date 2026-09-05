@@ -120,6 +120,24 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   McpServer and transport. Simpler than session management for a demo, at the cost
   of per-request setup.
 
+## Deployment
+
+- `[VERIFIED]` MCP server is public at `https://mandate-rho.vercel.app/api/mcp`,
+  served from the Next.js app rather than a separate host so it shares the
+  frontend's deployment and lifetime. Verified live against the deployed URL:
+  `initialize` negotiates protocol 2025-06-18, `tools/list` returns all three
+  tools, and `check_permission` answers with real composed data — authorized,
+  protocol-not-allowlisted, over-position-limit and over-daily-cap all correct.
+
+- `[NOTE]` Two GitHub repos are in play. `nisargpatel7042lva/mandate` is upstream
+  and is what `git remote origin` points at; `siddharth-09/mandate` is a fork and
+  is what Vercel builds from. The fork must be synced for a push to reach
+  production. Added as the `fork` remote.
+
+- `[NOTE]` The deployment needs NEXT_PUBLIC_GRAPH_API_KEY,
+  NEXT_PUBLIC_AGENT0_SUBGRAPH_ID, NEXT_PUBLIC_MANDATE_SUBGRAPH_URL and AGENT_ID.
+  It never signs anything, so PRIVATE_KEY and MNEMONIC are deliberately absent.
+
 ## The Graph
 
 - `[RESOLVED]` Agent0/ERC-8004 subgraph indexes Base Mainnet only — no testnet
