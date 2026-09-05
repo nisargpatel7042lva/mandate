@@ -33,11 +33,13 @@ const walletClient = createWalletClient({
   transport: http(rpcUrl),
 })
 
-// The agent registration file we'll publish.
-// For testnet: using a GitHub Gist URL so it's publicly resolvable.
-// In production this would be an IPFS URI.
+// The ERC-8004 registration file, served from the repo's public/ directory so
+// the URL is stable, versioned alongside the code, and checkable by anyone.
+// Schema: https://eips.ethereum.org/EIPS/eip-8004#registration-v1
+// The registry exposes setAgentURI(uint256,string) (verified present in the
+// deployed implementation), so this can be repointed later if needed.
 const AGENT_URI =
-  'https://gist.githubusercontent.com/mandate-agent/testagent/raw/agent-registration.json'
+  'https://raw.githubusercontent.com/nisargpatel7042lva/mandate/main/public/agent-registration.json'
 
 async function main() {
   console.log('=== ERC-8004 Agent Identity Registration ===')
