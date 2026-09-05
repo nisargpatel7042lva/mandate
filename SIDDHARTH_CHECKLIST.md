@@ -72,25 +72,23 @@ the phase's own definition of done. **Nothing here is verified running yet.**
 - [x] `src/lib/agent0.ts` (124 lines) — client written, points at Base Mainnet subgraph
       `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb`
 - [x] `scripts/introspect-agent0-schema.ts` — schema introspection, the right instinct
-- [ ] **Blocked: `NEXT_PUBLIC_GRAPH_API_KEY` is unset — no query has ever run**
-- [ ] Run the introspection, confirm the field names, paste a real response
+- [x] Graph API key set; live queries verified against the gateway
+- [x] Introspected the live schema and rewrote every query against it
 
 ### 3.2 — Our own subgraph — ✅ DEPLOYED AND INDEXING LIVE
 - [x] `subgraph/schema.graphql`, `subgraph/src/permission-mirror.ts`, `subgraph.yaml`
-- [ ] 🔴 **Circular dependency:** the manifest indexes `PermissionSynced` from
-      PermissionMirror, but `address: "0x0000…0000"` and `startBlock: 0` — the contract
-      is not deployed. PermissionMirror deployment sits in Phase 7, the *stretch* goal.
-      So the Graph prize currently depends on the one phase we agreed to timebox and drop.
-- [ ] **Fix: deploy PermissionMirror to Sepolia now.** It is a standalone contract with no
-      SwapVM dependency — deploying it early decouples Phase 3 from Phase 7 entirely.
-- [ ] Then: set the real address + startBlock, deploy to Studio, trigger a real sync via
-      `npm run relayer`, and watch the event appear in a query
+- [x] PermissionMirror deployed to Sepolia — `0x6f19dd6f759fac8a19579ecdefb342009a21d9a7`,
+      block 11642041. This broke the circular dependency on Phase 7.
+- [x] Manifest points at the real address and start block; `graph build` succeeds
+- [x] Deployed to Studio and indexing live: v0.0.2, `hasIndexingErrors` false
+- [x] Real event indexed — `npm run relayer` synced the scope, query returns
+      allowedProtocols 7, maxPositionSizeUsdc 10000000000, syncCount 1
 
 ### 3.3 — Composition / underwriting logic — ✅ RUNS ON LIVE COMPOSED DATA
 - [x] `src/lib/underwriting.ts` (201 lines), real documented formula:
       `TrustScore = ERC8004 * 0.60 + MandateHistory * 0.40`, threshold 60,
       five explicit authorization conditions. Not a stub — satisfies the phase requirement.
-- [ ] Exercise the deny paths against real data once 3.1 and 3.2 return live values
+- [x] All four paths verified live: authorized, not-allowlisted, over-position, over-daily-cap
 
 ### 3.4 — MCP server — ⚠️ WORKS LOCALLY, NOT YET PUBLIC
 - [x] `mcp/server.ts` — three tools: get_agent_authority, check_permission, get_risk_score
@@ -103,7 +101,7 @@ the phase's own definition of done. **Nothing here is verified running yet.**
       cannot reach it, so this sub-item is what stands between us and that track.
 
 ### 3.5 — Handoff to Nisarg
-- [ ] Publish the real query shape once 3.1/3.2 return live data
+- [ ] Publish the real query shape to Nisarg — MCP endpoint + composeRiskScore signature
 
 **Definition of done (unchanged):** an actual transcript of the MCP server answering a
 real question about agent 10099, sourced from live Subgraph Studio data.

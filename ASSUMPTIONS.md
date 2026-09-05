@@ -7,9 +7,8 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
 
 ## Chain / Deployment
 
-- `[UNVERIFIED]` ENSv2 Enhanced Access Control is live and functional on Sepolia —
-  docs say schema is "not yet final"; need to deploy a test record and read it back.
-  **Blocking: Phase 1 (identity contract).**
+- `[RESOLVED]` ENSv2 EAC is not used — permissions are standard `setText` records,
+  written and read back live. See the ENSv2 Sepolia section below.
 
 - `[UNVERIFIED]` Aqua contract is not yet deployed on Sepolia by 1inch —
   we plan to self-deploy per `1inch/aqua` DEPLOY.md. Need to confirm `chain-11155111.json`
@@ -123,10 +122,10 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
 
 ## The Graph
 
-- `[UNVERIFIED]` Agent0/ERC-8004 subgraph deployment on Sepolia or any testnet —
-  confirmed Base Mainnet ID `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb`, but no
-  testnet subgraph ID found. May need to use mainnet subgraph for agent history queries.
-  **Blocking: Phase 2 (Graph composition).**
+- `[RESOLVED]` Agent0/ERC-8004 subgraph indexes Base Mainnet only — no testnet
+  deployment exists. Confirmed three ways: `protocols` returns a single row (8453),
+  `agents(where: {chainId_not: "8453"})` returns none, and the subgraph head block
+  tracks Base. See the Agent0 section below for how the composition uses it.
 
 ## Circle / Arc
 
