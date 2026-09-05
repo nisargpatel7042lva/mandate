@@ -42,10 +42,46 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   not yet read from Circle developer docs. Need to confirm before Phase 2 settlement work.
   **Blocking: Phase 2 (Arc settlement).**
 
-- `[UNVERIFIED]` USDC testnet contract address on Sepolia for Arc settlement —
-  need to confirm from Circle docs whether they operate their own testnet USDC or use
-  the canonical one.
-  **Blocking: Phase 2 (settlement contract).**
+- `[RESOLVED]` USDC on Sepolia — there are TWO distinct USDC contracts and they are
+  not interchangeable. ENS name registration requires the ENS-deployed token at
+  `0x7Fc21ceb0C5003576ab5E101eB240c2b822c95d2`; Circle's canonical Sepolia USDC is
+  `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` (what faucet.circle.com dispenses) and
+  is the one Arc settlement will use in Phase 5. Both are named "USDC" with 6 decimals,
+  so a wrong-token balance looks correct in a wallet while `register-ens.ts` still fails.
+
+- `[RESOLVED]` How to obtain ENS testnet USDC — there is no faucet. The token at
+  `0x7Fc21ceb…95d2` exposes a public, unrestricted `mint(address,uint256)`; total supply
+  is ~5.6e51, consistent with open minting. Verified by minting 10,000 USDC to the project
+  signer via Etherscan's write interface (balance confirmed on-chain by `npm run whoami`).
+  **Blocking: Phase 1 (ENS registration) — RESOLVED.**
+
+## ERC-8004 Identity Registry
+
+- `[VERIFIED]` Registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` on Sepolia is an
+  EIP-1967 proxy (131-byte runtime) delegating to implementation
+  `0x7274e874ca62410a93bd8bf61c69d8045e399c02` (14,475 bytes). Live reads against it
+  return real data: agentId 0 has `tokenURI` `ipfs://QmPxKi3ZZW…epKo` and owner
+  `0xA7132182Cbc0ceA8bE148FDE88faaD3BB9410d48`.
+
+- `[VERIFIED]` Function selectors present in the deployed implementation:
+  `register(string)` = `0xf2c298be`, `register()`, `setAgentURI(uint256,string)`,
+  `setMetadata(uint256,string,bytes)`, `tokenURI(uint256)`, `ownerOf(uint256)`.
+  `getAgentWallet(uint256)` returns a zero address for unregistered wallets rather than
+  reverting, confirming it exists. **The agent URI is therefore updatable after minting**,
+  so a wrong URI is recoverable and does not require burning an agentId.
+
+- `[VERIFIED]` Agent registration file schema, from the EIP-8004 specification:
+  required `type`, `name`, `description`, `image`, `services`; optional `x402Support`,
+  `active`, `registrations`, `supportedTrust`. `type` must be
+  `https://eips.ethereum.org/EIPS/eip-8004#registration-v1`. Our file lives at
+  `public/agent-registration.json` and is served from the repo's raw URL.
+  `registrations[]` is intentionally omitted on first publish because it carries the
+  `agentId`, which does not exist until registration completes.
+
+- `[RESOLVED]` The original `AGENT_URI` in `register-identity.ts` pointed at
+  `gist.githubusercontent.com/mandate-agent/…`, which returns HTTP 404 — an invented
+  placeholder. Replaced with the repo-hosted registration file before any registration
+  transaction was sent.
 
 ## ENSv2 EAC Record Schema
 

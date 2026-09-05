@@ -146,3 +146,50 @@ subgraph.yaml must be replaced with the real deployed address in Phase 4.
 next build passes. Live transcript will be added when credentials are available.
 
 **Spec files used:** `/specs/phase3-graph.md`
+
+### 2026-09-05 | Backend | Phase 1 (completion pass)
+
+**Task:** Make the Phase 1 script suite actually executable against live Sepolia, and
+resolve the external unknowns blocking it. Phase 1 code existed from 2026-09-04 but had
+never been run — its definition of done requires real on-chain output.
+
+**Claude Code was asked to:**
+- Audit why the Phase 1 scripts had never run, and fix the blockers
+- Add `scripts/lib/config.ts` — `.env` loading via `dotenv` plus signer resolution
+  (`PRIVATE_KEY` preferred, `MNEMONIC` fallback) so the four entrypoints stop duplicating
+  environment boilerplate
+- Add `scripts/whoami.ts` — read-only preflight printing the active signer address and its
+  Sepolia ETH / ENS-USDC / Circle-USDC balances
+- Determine where ENS testnet USDC comes from (previously an open `UNVERIFIED` item)
+- Verify the ERC-8004 registration-file schema against the EIP-8004 specification and
+  confirm the deployed registry's function set before sending any transaction
+- Write `public/agent-registration.json` + `public/agent-avatar.svg` and repoint `AGENT_URI`
+
+**AI-generated:** `config.ts`, `whoami.ts`, the registration JSON and avatar SVG, the
+ASSUMPTIONS.md verification entries, `SIDDHARTH_CHECKLIST.md`.
+
+**Human-directed / reviewed:** Rejected an initial hand-rolled `.env` parser in favour of
+the `dotenv` dependency already added to the project — the parser was redundant and was
+removed (config.ts went 82 → 43 lines). Chose to publish a real registration file before
+registering rather than minting against a placeholder URI. Performed the ENS-USDC mint
+manually via Etherscan. Supplied and funded the testnet signer.
+
+**Bugs found and fixed:**
+- Scripts never loaded `.env` at all — no `dotenv` import and no `--env-file`, so every
+  script threw on a missing env var regardless of the file's contents.
+- `.env.example` declared `NEXT_PUBLIC_SEPOLIA_RPC_URL` while the scripts read
+  `SEPOLIA_RPC_URL`, and omitted 6 of the 8 variables the suite actually requires.
+- Blank env vars are `''`, not `undefined`, so `process.env.AGENT_ID ?? '1'` never fired
+  its fallback and `BigInt('')` silently evaluated to `0n` — reads targeted the wrong
+  agent. Added `optionalEnv()` and routed all optional reads through it.
+- `AGENT_URI` pointed at a non-existent GitHub Gist (HTTP 404). Caught before any
+  registration transaction was sent.
+
+**Verified against live Sepolia (not assumed):**
+- ERC-8004 registry is an EIP-1967 proxy → implementation `0x7274e874…9c02`
+- `setAgentURI(uint256,string)` is present, so the agent URI is updatable post-mint
+- ENS testnet USDC (`0x7Fc2…`) and Circle USDC (`0x1c7D…`) are different contracts;
+  the ENS one has a public `mint(address,uint256)` and no faucet
+- `npm run read:identity` returns real on-chain data for an existing agent
+
+**Spec files used:** `/specs/build-plan.md`
