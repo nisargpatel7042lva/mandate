@@ -193,3 +193,39 @@ manually via Etherscan. Supplied and funded the testnet signer.
 - `npm run read:identity` returns real on-chain data for an existing agent
 
 **Spec files used:** `/specs/build-plan.md`
+
+### 2026-09-05 | Backend | Phase 1 (ENSv2 completion)
+
+**Task:** Finish the ENS half of Phase 1 — register the name, create the agent
+subname, and publish the permission records so they are readable on-chain.
+
+**Claude Code was asked to:** diagnose why `register()` reverted, find the correct
+Sepolia contracts, implement ENSv2 subname creation, and write the Mandate
+permission records to a resolver.
+
+**AI-generated:** `scripts/create-subname.ts`, `scripts/set-permissions.ts`,
+`scripts/mint-usdc.ts`, the corrected addresses and comments in `scripts/lib/constants.ts`.
+
+**Human-directed / reviewed:** Rejected the claim that ENSv2 might not support
+subnames and supplied the ENSv2 documentation, which redirected the work from a
+workaround (records on the parent name) to the correct per-name subregistry
+design. Also rejected a redundant hand-rolled `.env` parser in favour of the
+`dotenv` dependency already present.
+
+**Bugs found and fixed:**
+- Contract addresses came from ensjs `l2.d.ts`, which is the Namechain deployment
+  keyed under chain id 11155111 — not Ethereum Sepolia. `register()` reverted with
+  `PaymentTokenNotSupported`. Diagnosed by simulating the call and decoding the
+  custom error rather than guessing.
+- Subname creation used the v1 `createSubname`, which targets the legacy registry
+  and NameWrapper and cannot drive a v2 name.
+- `mandate.eth` was registered with `subregistry = address(0)`, so it could hold
+  no children at all.
+- The text-record writer used `setText(bytes32,string,string)`, which does not
+  exist on the ENSv2 DedicatedResolver — its writer is `setText(string,string)`.
+
+**Verified live on Sepolia:** agentId 10099; `mandate.eth` registered
+(tx `0xd0762cc8…`); `testagent.mandate.eth` created (tx `0x5196898a…`); both
+permission records written and read back through `npm run read:identity`.
+
+**Spec files used:** `/specs/build-plan.md`

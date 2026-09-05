@@ -27,6 +27,10 @@ import { getRpcUrl, optionalEnv } from './lib/config.js'
 const AGENT_ID = BigInt(optionalEnv('AGENT_ID', '1'))
 const ENS_NAME = optionalEnv('ENS_NAME', 'testagent.mandate.eth')
 
+// ENSv2 resolvers are per-name. ENS_RESOLVER_ADDRESS is the instance deployed
+// for this name by set-permissions.ts; the constant is only the implementation.
+const RESOLVER = optionalEnv('ENS_RESOLVER_ADDRESS', ENS_PUBLIC_RESOLVER_SEPOLIA) as `0x${string}`
+
 const publicClient = createPublicClient({
   chain: sepolia,
   transport: http(getRpcUrl()),
@@ -106,20 +110,20 @@ async function main() {
 
   // ── ENSv2 Permission Records ──────────────────────────────────────────────
   console.log('\n─── ENSv2 Text Records ───')
-  console.log('Resolver:', ENS_PUBLIC_RESOLVER_SEPOLIA)
+  console.log('Resolver:', RESOLVER)
   console.log('Name:    ', ENS_NAME)
 
   const node = namehash(ENS_NAME)
   console.log('namehash:', node)
 
   const permissionsRaw = await readContract<string>(publicClient, {
-    address: ENS_PUBLIC_RESOLVER_SEPOLIA,
+    address: RESOLVER,
     abi: PUBLIC_RESOLVER_ABI,
     functionName: 'text',
     args: [node, MANDATE_PERMISSIONS_KEY],
   })
   const policyRaw = await readContract<string>(publicClient, {
-    address: ENS_PUBLIC_RESOLVER_SEPOLIA,
+    address: RESOLVER,
     abi: PUBLIC_RESOLVER_ABI,
     functionName: 'text',
     args: [node, MANDATE_POLICY_KEY],
@@ -133,11 +137,11 @@ async function main() {
       console.log(permissionsRaw)
     }
   } else {
-    console.log('(empty — register-ens.ts has not been run yet)')
+    console.log('(empty — run `npm run set:permissions`)')
   }
 
   console.log('\n' + MANDATE_POLICY_KEY + ':')
-  console.log(policyRaw || '(empty — register-ens.ts has not been run yet)')
+  console.log(policyRaw || '(empty — run `npm run set:permissions`)')
 
   console.log('\n✓ Read-back complete.')
 }

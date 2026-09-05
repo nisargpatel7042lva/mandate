@@ -44,9 +44,15 @@ export const ENS_TESTNET_USDC_SEPOLIA =
 export const ENS_L2_REGISTRY_SEPOLIA =
   '0xF332544e6234f1CA149907D0d4658afD5feB6831' as const
 
-// ensDedicatedResolver — resolver used for text records
-export const ENS_PUBLIC_RESOLVER_SEPOLIA =
+// DedicatedResolver IMPLEMENTATION. Not usable directly: ENSv2 resolvers are
+// per-name, so this is deployed as a proxy for each name. Its writer is
+// setText(string,string) with no node argument — the instance already knows the
+// name it serves. Reads use the ENS-compatible text(bytes32,string).
+export const ENS_DEDICATED_RESOLVER_IMPL_SEPOLIA =
   '0xa20b41dc7336c4d974e3c9a6ea01b77647559c46' as const
+
+/** @deprecated alias kept for older scripts; same implementation address. */
+export const ENS_PUBLIC_RESOLVER_SEPOLIA = ENS_DEDICATED_RESOLVER_IMPL_SEPOLIA
 
 // The .eth registry that actually holds 2LD ownership on Sepolia. Identified
 // from the register() receipt: it minted the ERC-1155 for mandate.eth to us.

@@ -83,6 +83,41 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   placeholder. Replaced with the repo-hosted registration file before any registration
   transaction was sent.
 
+## ENSv2 Sepolia — resolved by live registration (2026-09-05)
+
+- `[RESOLVED]` Two incompatible address sets ship in ensjs. `dist/clients/l2.d.ts`
+  keys **Namechain** contracts under chain id 11155111; those addresses exist on
+  Sepolia and answer `isAvailable()`, but `getRegisterPrice()` reverts for every
+  payment token and `register()` reverts with `PaymentTokenNotSupported`. The
+  working Ethereum Sepolia set comes from `extendChainWithEns(sepolia)`:
+  registrar `0x8c2e866b…`, payment token `0x3dfc8b53…`. Price for a 7-character
+  name for one year: 7.994534 USDC.
+
+- `[RESOLVED]` ENSv2 subnames are fully supported. A parent name has its own
+  registry contract, so it can hold no children until a subregistry is deployed
+  and attached — `register()` arg 3 is `subregistry`, and passing `address(0)`
+  leaves the name childless. Flow: `VerifiableFactory.deployProxy(userRegistryImpl)`
+  → `setSubregistry(parentTokenId, subregistry)` → `register(...)` on the
+  subregistry. ENSv2 token id = labelhash with the low 32 bits cleared.
+
+- `[RESOLVED]` The v1 `createSubname` from `@ensdomains/ensjs/wallet` targets the
+  legacy registry and NameWrapper and cannot drive a v2 name. ensjs has v2
+  equivalents under `actions/wallet/v2/`, but `deploySubregistry` and the v2
+  `createSubname` are not re-exported from any public entrypoint and the package
+  `exports` map blocks deep imports. We call the contracts directly with ABIs
+  from `@ensdomains/ensjs-abi`.
+
+- `[RESOLVED]` ENSv2 resolvers are per-name. `0xa20b41dc…` is the DedicatedResolver
+  *implementation*, not a usable resolver — it is deployed as a proxy per name.
+  Its writer is **`setText(string key, string value)` with no node argument**;
+  the v1-style `setText(bytes32,string,string)` does not exist on it. Reads use
+  the ENS-compatible `text(bytes32,string)`, which ignores the node.
+
+- `[VERIFIED]` Live deployment for `testagent.mandate.eth`:
+  subregistry `0x907779eaec2f678bf91c2580b2fd8b395cf42775`,
+  resolver `0x47199acbb8cf8766c67a4853574e945c8e795005`.
+  `mandate.permissions` and `mandate.policy` both read back from chain.
+
 ## ENSv2 EAC Record Schema
 
 - `[RESOLVED]` ENSv2 EAC is NOT used for permission encoding — we use standard ENS
