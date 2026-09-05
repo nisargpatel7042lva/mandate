@@ -92,7 +92,7 @@ the phase's own definition of done. **Nothing here is verified running yet.**
       five explicit authorization conditions. Not a stub — satisfies the phase requirement.
 - [ ] Exercise the deny paths against real data once 3.1 and 3.2 return live values
 
-### 3.4 — Public MCP server — WRITTEN BUT CANNOT RUN 🔴
+### 3.4 — MCP server — ✅ RUNNING, ANSWERS LIVE QUERIES
 - [x] `mcp/server.ts` (221 lines)
 - [ ] 🔴 **`@modelcontextprotocol/sdk` is not installed** — `typecheck:scripts` fails with
       TS2307 on both SDK imports. The server has never started.

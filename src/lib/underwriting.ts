@@ -135,7 +135,24 @@ export async function composeRiskScore(
   ])
 
   // ── ERC-8004 score ──────────────────────────────────────────────────────────
-  const reputation = agent0Data?.reputation ?? null
+  // ERC-8004 agent ids are unique per chain, not globally. Looking up our Sepolia
+  // agentId against the Base-only Agent0 subgraph can therefore return a real but
+  // unrelated agent, attributing a stranger's reputation to ours. Require the
+  // record's owner or wallet to match the address being underwritten.
+  const identity = agent0Data?.identity ?? null
+  const wanted = agentAddress.toLowerCase()
+  const identityMatches =
+    identity !== null &&
+    (identity.owner.toLowerCase() === wanted || identity.agentWallet.toLowerCase() === wanted)
+
+  if (identity && !identityMatches) {
+    reasons.push(
+      `Agent0 record ${identity.id} belongs to ${identity.owner} — not this agent; ` +
+        'ERC-8004 ids are unique per chain, so the record was discarded',
+    )
+  }
+
+  const reputation = identityMatches ? (agent0Data?.reputation ?? null) : null
   let erc8004Score: number | null = null
 
   if (reputation?.found) {
@@ -227,7 +244,7 @@ export async function composeRiskScore(
     mandateHistoryScore,
     authorized,
     reasons,
-    agentFound: !!agent0Data?.identity,
+    agentFound: identityMatches,
     reputationFound: !!reputation,
     scopeFound: !!mandateScope,
     scopeExpiry,

@@ -100,6 +100,27 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   came out null and every query looked like "no data" rather than a config error.
   Endpoints are now resolved per call.
 
+## MCP Server — resolved 2026-09-06
+
+- `[RESOLVED]` `@modelcontextprotocol/sdk` was never installed, so `mcp/server.ts`
+  did not compile and had never run. Installed sdk 1.30.0 (zod 4.5.4 was already
+  present). Verified live: `GET /health` returns ok, `initialize` negotiates
+  protocol 2025-06-18, `tools/list` returns all three tools, and each tool answers
+  with real composed data.
+
+- `[RESOLVED]` **ERC-8004 agent ids are unique per chain, not globally.** Passing our
+  Sepolia `agentId` 10099 to the Base-only Agent0 subgraph matched a real but
+  unrelated agent — `8453:10099`, owned by `0x7ae2a784...` — and produced a
+  confident-looking `erc8004Score` of 54 built on a stranger's reputation. The
+  composition now requires the Agent0 record's `owner` or `agentWallet` to match
+  the address being underwritten, and reports the discarded record by id and owner.
+  Attributing a third party's reputation to an agent is the exact failure this
+  product exists to prevent, so it fails closed and says so.
+
+- `[NOTE]` The server runs stateless: each POST to /mcp constructs a fresh
+  McpServer and transport. Simpler than session management for a demo, at the cost
+  of per-request setup.
+
 ## The Graph
 
 - `[UNVERIFIED]` Agent0/ERC-8004 subgraph deployment on Sepolia or any testnet —

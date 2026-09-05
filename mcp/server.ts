@@ -9,15 +9,28 @@
 // To run: npx tsx mcp/server.ts
 // To query: see mcp/example-query.ts for a sample client
 
+import 'dotenv/config'
 import http from 'node:http'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
 import { composeRiskScore, PROTOCOL_BITS, TRUST_THRESHOLD } from '../src/lib/underwriting.js'
-import { fetchAgent0Data } from '../src/lib/agent0.js'
+import { fetchAgent0Data, AGENT0_INDEXED_CHAIN_ID } from '../src/lib/agent0.js'
 import { fetchAgentScope, fetchRecentUpdates } from '../src/lib/mandate-subgraph.js'
 
 const PORT = parseInt(process.env.MCP_SERVER_PORT ?? '3001', 10)
+
+// Agent0 ids are "<chainId>:<agentId>" and that subgraph indexes Base Mainnet
+// only, so an agent registered elsewhere has no row there. Callers may pass an
+// id explicitly; otherwise fall back to AGENT_ID from the environment.
+const DEFAULT_AGENT0_ID = process.env.AGENT_ID?.trim() || undefined
+
+/** Renders the composite formula, keeping "unknown" distinct from zero. */
+function formulaText(erc: number | null, mandate: number, total: number): string {
+  return erc === null
+    ? `no ERC-8004 record — weights renormalised onto Mandate history: ${mandate} = ${total}`
+    : `${erc} × 0.60 + ${mandate} × 0.40 = ${total}`
+}
 
 function createMcpServer(): McpServer {
   const mcp = new McpServer({
@@ -33,11 +46,20 @@ function createMcpServer(): McpServer {
     'Get the composed authority profile for a Mandate agent: trust score, permission scope, \
 recent sync history. Combines Agent0/ERC-8004 reputation (Base Mainnet) with the agent\'s \
 on-chain permission scope from the Mandate subgraph (Sepolia).',
-    { agentAddress: z.string().describe('The agent\'s wallet address (0x...)') },
-    async ({ agentAddress }) => {
+    {
+      agentAddress: z.string().describe('The agent\'s wallet address (0x...)'),
+      agentId: z
+        .string()
+        .optional()
+        .describe('ERC-8004 agent id for the Agent0 lookup. Optional; that subgraph indexes Base Mainnet only.'),
+    },
+    async ({ agentAddress, agentId }) => {
+      const a0Id = agentId ?? DEFAULT_AGENT0_ID
       const [riskResult, agent0Data, scope, recentUpdates] = await Promise.all([
-        composeRiskScore(agentAddress),
-        fetchAgent0Data(agentAddress).catch(() => null),
+        composeRiskScore(agentAddress, undefined, a0Id),
+        a0Id
+          ? fetchAgent0Data(AGENT0_INDEXED_CHAIN_ID, a0Id).catch(() => null)
+          : Promise.resolve(null),
         fetchAgentScope(agentAddress).catch(() => null),
         fetchRecentUpdates(agentAddress).catch(() => []),
       ])
@@ -97,11 +119,11 @@ and composed trust score.',
       const amountRaw = BigInt(Math.round(parseFloat(amountUsdc) * 1_000_000))
       const dailySpendRaw = BigInt(Math.round(parseFloat(currentDailySpendUsdc) * 1_000_000))
 
-      const result = await composeRiskScore(agentAddress, {
-        protocol,
-        amountUsdc: amountRaw,
-        currentDailySpendUsdc: dailySpendRaw,
-      })
+      const result = await composeRiskScore(
+        agentAddress,
+        { protocol, amountUsdc: amountRaw, currentDailySpendUsdc: dailySpendRaw },
+        DEFAULT_AGENT0_ID,
+      )
 
       const output = {
         agentAddress,
@@ -114,7 +136,7 @@ and composed trust score.',
         breakdown: {
           erc8004Score: result.erc8004Score,
           mandateHistoryScore: result.mandateHistoryScore,
-          formula: `${result.erc8004Score} × 0.60 + ${result.mandateHistoryScore} × 0.40 = ${result.trustScore}`,
+          formula: formulaText(result.erc8004Score, result.mandateHistoryScore, result.trustScore),
         },
       }
 
@@ -132,17 +154,17 @@ and composed trust score.',
 Returns the weighted combination of ERC-8004 reputation and Mandate on-chain history.',
     { agentAddress: z.string().describe('The agent\'s wallet address (0x...)') },
     async ({ agentAddress }) => {
-      const result = await composeRiskScore(agentAddress)
+      const result = await composeRiskScore(agentAddress, undefined, DEFAULT_AGENT0_ID)
 
       const output = {
         agentAddress,
         trustScore: result.trustScore,
         breakdown: {
           erc8004Score: result.erc8004Score,
-          erc8004Weight: '60%',
+          erc8004Weight: result.erc8004Score === null ? 'n/a (no record)' : '60%',
           mandateHistoryScore: result.mandateHistoryScore,
-          mandateHistoryWeight: '40%',
-          formula: `${result.erc8004Score} × 0.60 + ${result.mandateHistoryScore} × 0.40 = ${result.trustScore}`,
+          mandateHistoryWeight: result.erc8004Score === null ? '100% (renormalised)' : '40%',
+          formula: formulaText(result.erc8004Score, result.mandateHistoryScore, result.trustScore),
         },
         meetsThreshold: result.trustScore >= TRUST_THRESHOLD,
         threshold: TRUST_THRESHOLD,
@@ -217,5 +239,5 @@ server.listen(PORT, () => {
   console.log('Required env:')
   console.log('  NEXT_PUBLIC_GRAPH_API_KEY')
   console.log('  NEXT_PUBLIC_AGENT0_SUBGRAPH_ID')
-  console.log('  NEXT_PUBLIC_MANDATE_SUBGRAPH_ID')
+  console.log('  NEXT_PUBLIC_MANDATE_SUBGRAPH_URL  (or _ID, if published)')
 })
