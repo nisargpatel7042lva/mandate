@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ─── Class-based dark mode ───────────────────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── Design tokens ───────────────────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg:           var(--bg);
+  --color-surface:      var(--surface);
+  --color-surface-2:    var(--surface-2);
+  --color-surface-3:    var(--surface-3);
+  --color-border:       var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-text:         var(--text);
+  --color-text-2:       var(--text-2);
+  --color-text-3:       var(--text-3);
+  --color-success:      #22c55e;
+  --color-warning:      #f59e0b;
+  --color-danger:       #ef4444;
+  --color-brand:        #0ea5e9;
+  --color-tier-monitoring: #3b82f6;
+  --color-tier-autonomous: #f97316;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Light mode ──────────────────────────────────────────────────────────── */
+:root {
+  --bg:            #f8f9fc;
+  --surface:       #ffffff;
+  --surface-2:     #f1f3f8;
+  --surface-3:     #e8ecf5;
+  --border:        #dde2ef;
+  --border-subtle: #edf0f7;
+  --text:          #0d111c;
+  --text-2:        #4d5a78;
+  --text-3:        #9daac0;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── Dark mode ───────────────────────────────────────────────────────────── */
+.dark {
+  --bg:            #09090e;
+  --surface:       #0f1117;
+  --surface-2:     #161a24;
+  --surface-3:     #1e2535;
+  --border:        #1e2535;
+  --border-subtle: #141825;
+  --text:          #f0f3f8;
+  --text-2:        #8b96b4;
+  --text-3:        #4d5a78;
 }
+
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+html { height: 100%; }
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
