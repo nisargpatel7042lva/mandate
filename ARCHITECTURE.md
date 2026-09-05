@@ -1,6 +1,6 @@
 # Mandate — Architecture
 
-> **Status:** Phase 1 confirmed. Identity layer + permission schema complete on Sepolia.
+> **Status:** Phase 2 UI complete. Phase 3 data layer skeleton built — live run awaits credentials.
 
 ## Overview
 
@@ -32,14 +32,45 @@ both its policy AND its live reputation score — enforced inside the swap execu
 - In the single-chain prototype, MandateGate reads ENSv2 directly; PermissionMirror
   becomes relevant if the execution chain differs from Sepolia.
 
-### 2. Reputation & Risk Signal (The Graph) — Phase 2
+### 2. Reputation & Risk Signal (The Graph) — Phase 3 skeleton ✓, live run pending
 
 **ERC-8004 Reputation Registry** (`0x8004B663056A597Dffe9eCcC1965A193B7388713` on Sepolia)
 - `getSummary(agentId, clientAddresses, tag1, tag2)` → feedback count + weighted score
 
-**Subgraph queries:**
-- Agent0/ERC-8004 subgraph: confirmed Base Mainnet ID. Sepolia subgraph status unverified.
-- Mandate-specific subgraph: to be deployed in Phase 2 indexing MandateGate execution events.
+**Subgraph queries (src/lib/agent0.ts, src/lib/mandate-subgraph.ts):**
+- Agent0/ERC-8004 subgraph: Base Mainnet deployment ID `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb`
+  — field names must be verified via `scripts/introspect-agent0-schema.ts` before live queries.
+- Mandate subgraph (subgraph/): indexes PermissionMirror.PermissionSynced events on Sepolia.
+  Entities: AgentScope (current state), PermissionUpdate (history). Not yet deployed.
+
+**Underwriting formula (src/lib/underwriting.ts):**
+
+```
+TrustScore = ERC8004_score × 0.60 + MandateHistory_score × 0.40
+
+ERC8004_score (0–100):
+  = (successfulDecisions / totalDecisions) × 100
+  = 0 if agent has no reputation record (unverified agent — must earn trust)
+
+MandateHistory_score (0–100):
+  Interim (Phase 3): scope freshness proxy
+    = 70  if last synced within 24h
+    = linear decay to 0 over days 1–7 of staleness
+    = 70  if no Mandate subgraph record (new agent neutral bonus)
+  Full (Phase 4+): (1 - blockedRate) × 100 once MandateGate events are indexed
+
+Authorization decision (all must hold):
+  1. TrustScore ≥ 60
+  2. protocol bitmask has the requested protocol bit set
+  3. amount ≤ maxPositionSizeUsdc
+  4. currentDailySpend + amount ≤ maxDailySpendUsdc
+  5. block.timestamp < scope.expiry
+```
+
+**MCP server (mcp/server.ts):**
+- Transport: Streamable HTTP (stateless), port MCP_SERVER_PORT (default 3001)
+- Tools: `get_agent_authority`, `check_permission`, `get_risk_score`
+- Each tool fetches from live subgraphs — no fixtures
 
 ### 3. Enforcement & Execution (1inch SwapVM, self-deployed on Sepolia) — Phase 2
 

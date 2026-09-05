@@ -103,3 +103,46 @@ policy strip (allowed / blocked / expiry) as the first fixed element of the dash
 the EXAMPLE_DATA banner requirement (must be unmistakably marked, never implied as real).
 
 **Spec files used:** `/specs/phase2-ui.md`
+
+### 2026-09-05 | Backend | Phase 3 (skeleton — live run blocked on credentials)
+
+**Task:** Composed Graph data layer + underwriting logic. Code skeleton built; live run
+awaits `NEXT_PUBLIC_GRAPH_API_KEY`, `NEXT_PUBLIC_AGENT0_SUBGRAPH_ID`,
+`NEXT_PUBLIC_MANDATE_SUBGRAPH_ID`, `PRIVATE_KEY`, `SEPOLIA_RPC_URL`.
+
+**Claude Code was asked to:**
+- Write `src/lib/agent0.ts` — typed GraphQL client for Agent0/ERC-8004 Subgraph (Base Mainnet
+  via Subgraph Studio gateway). Includes schema-not-yet-verified warning in development to
+  force running `scripts/introspect-agent0-schema.ts` before trusting field names.
+- Write `scripts/introspect-agent0-schema.ts` — GraphQL introspection script to confirm real
+  Agent0 schema field names before any live query is made.
+- Write `src/lib/mandate-subgraph.ts` — typed GraphQL client for own Mandate subgraph
+  (Sepolia, indexes PermissionMirror PermissionSynced events).
+- Write `src/lib/underwriting.ts` — composition logic for trust score + authorization decision.
+  Documented scoring formula (ERC8004 × 0.60 + MandateHistory × 0.40, threshold 60).
+- Write `subgraph/schema.graphql` — entities: AgentScope, PermissionUpdate.
+- Write `subgraph/subgraph.yaml` — manifest targeting PermissionMirror on Sepolia (address
+  is zero placeholder until Phase 4 deployment).
+- Write `subgraph/abis/PermissionMirror.json` — ABI for subgraph codegen.
+- Write `subgraph/src/permission-mirror.ts` — AssemblyScript mapping for PermissionSynced.
+- Write `mcp/server.ts` — MCP server using @modelcontextprotocol/sdk 1.30.0, Streamable HTTP
+  transport (stateless), three tools: get_agent_authority, check_permission, get_risk_score.
+- Update `eslint.config.mjs` to exclude mcp/ and subgraph/ from Next.js lint rules.
+- Update `tsconfig.json` to exclude mcp/ and subgraph/ from Next.js compilation.
+- Update `tsconfig.scripts.json` to include mcp/ for type checking.
+- Update `.env.example` with NEXT_PUBLIC_MANDATE_SUBGRAPH_ID.
+- Install @modelcontextprotocol/sdk@1.30.0 and dotenv.
+
+**AI-generated:** All code in the files listed above; subgraph schema design; scoring formula;
+MCP tool schema/descriptions; ABI file from PermissionMirror.sol.
+
+**Human-directed / reviewed:** Scoring formula weights (0.60/0.40) and threshold (60) are
+proposed — user must confirm before Phase 4 uses them for real enforcement decisions;
+the SCHEMA_VERIFIED sentinel in agent0.ts must be flipped only after running the introspection
+script against the live subgraph and confirming field names; the zero-address placeholder in
+subgraph.yaml must be replaced with the real deployed address in Phase 4.
+
+**Live run status:** BLOCKED — requires credentials listed above. Code type-checks and
+next build passes. Live transcript will be added when credentials are available.
+
+**Spec files used:** `/specs/phase3-graph.md`
