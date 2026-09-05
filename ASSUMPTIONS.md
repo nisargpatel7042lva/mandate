@@ -48,8 +48,24 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   Sync tx `0x7868486e…`.
 
 - `[VERIFIED]` The subgraph's `PermissionSynced` ABI matches the deployed
-  contract's event signature exactly, and `graph build` succeeds against the real
-  address and start block. Not yet deployed to Subgraph Studio.
+  contract's event signature exactly.
+
+- `[VERIFIED]` Deployed to Subgraph Studio and indexing live Sepolia events.
+  Endpoint: `https://api.studio.thegraph.com/query/1758732/mandate-subgraph/v0.0.2`
+  (deployment `Qmc3ZukZS5ZJHZuBC3qbmoYKtVGrPA71g7jg53HxbKCVZG`), `hasIndexingErrors`
+  false. Querying `agentScopes` returns the real synced scope: allowedProtocols 7,
+  allowedPositionTypes 3, maxPositionSizeUsdc 10000000000, maxDailySpendUsdc
+  50000000000, ensNode `0xa6233e5b…`, lastSyncedBlock 11642045, syncCount 1.
+
+- `[RESOLVED]` v0.0.1 indexed the event but wrote zeros for every scope field.
+  `PermissionSynced` carries only agent, ensNode and syncedAtBlock — the scope is
+  not in the event — and the handler never read contract state. Fixed in v0.0.2 by
+  binding the contract and calling `getPermissions` in the handler.
+
+- `[RESOLVED]` A Studio development deployment is queried at its own studio URL
+  with no API key. The `gateway.thegraph.com/api/<key>/subgraphs/id/<id>` form only
+  resolves for subgraphs published to the decentralized network, which this is not.
+  `NEXT_PUBLIC_MANDATE_SUBGRAPH_URL` carries the studio URL.
 
 ## The Graph
 

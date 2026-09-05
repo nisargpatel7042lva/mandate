@@ -75,7 +75,7 @@ the phase's own definition of done. **Nothing here is verified running yet.**
 - [ ] **Blocked: `NEXT_PUBLIC_GRAPH_API_KEY` is unset — no query has ever run**
 - [ ] Run the introspection, confirm the field names, paste a real response
 
-### 3.2 — Our own subgraph — WRITTEN BUT NOT DEPLOYABLE 🔴
+### 3.2 — Our own subgraph — ✅ DEPLOYED AND INDEXING LIVE
 - [x] `subgraph/schema.graphql`, `subgraph/src/permission-mirror.ts`, `subgraph.yaml`
 - [ ] 🔴 **Circular dependency:** the manifest indexes `PermissionSynced` from
       PermissionMirror, but `address: "0x0000…0000"` and `startBlock: 0` — the contract
