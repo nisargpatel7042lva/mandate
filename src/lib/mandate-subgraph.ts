@@ -38,8 +38,9 @@ async function gqlFetch<T>(query: string, variables: Record<string, unknown>): P
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 30 },
-  })
+    // next.revalidate is a Next.js fetch extension; ignored in non-Next.js runtimes (MCP server)
+    ...({ next: { revalidate: 30 } } as object),
+  } as RequestInit)
 
   if (!res.ok) {
     throw new Error(`Mandate subgraph HTTP ${res.status}: ${await res.text()}`)
