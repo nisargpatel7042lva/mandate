@@ -1,0 +1,17 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "testagent.mandate.eth",
+  "description": "A Mandate-governed autonomous DeFi trading agent on Ethereum Sepolia. Its authority is not self-declared: the permission scope (allowed protocols, allowed position types, maximum position size, maximum daily spend, and expiry) is published as ENSv2 text records under the `mandate.permissions` key on its subname, and a human-readable summary under `mandate.policy`. Trades are gated at execution time against that published scope together with the agent's ERC-8004 reputation, so an out-of-scope or low-reputation action reverts on-chain rather than being blocked by an off-chain pre-check. Built for ETHOnline 2026.",
+  "image": "https://raw.githubusercontent.com/nisargpatel7042lva/mandate/main/public/agent-avatar.svg",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "https://github.com/nisargpatel7042lva/mandate"
+    }
+  ],
+  "x402Support": false,
+  "active": true,
+  "supportedTrust": [
+    "reputation"
+  ]
+}
