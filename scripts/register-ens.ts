@@ -24,7 +24,6 @@
  */
 
 import { createPublicClient, createWalletClient, http, namehash } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 import { extendChainWithEns } from '@ensdomains/ensjs/chain'
 import { commitName, registerName, createSubname } from '@ensdomains/ensjs/wallet'
@@ -38,13 +37,11 @@ import {
   PUBLIC_RESOLVER_ABI,
 } from './lib/constants.js'
 import { readContract, writeContract } from './lib/client.js'
+import { getAccount, getRpcUrl, optionalEnv } from './lib/config.js'
 
-if (!process.env.PRIVATE_KEY) throw new Error('PRIVATE_KEY env var is required')
-if (!process.env.SEPOLIA_RPC_URL) throw new Error('SEPOLIA_RPC_URL env var is required')
+const account = getAccount()
 
-const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`)
-
-const transport = http(process.env.SEPOLIA_RPC_URL)
+const transport = http(getRpcUrl())
 
 // Extend Sepolia with ENS L1 contracts (ensWalletActions needs the chain config),
 // then add ethRegistrar (ENSv2 L2 registrar) so commitName/registerName work.
@@ -141,8 +138,8 @@ async function main() {
   const label = 'mandate'
   const subname = 'testagent.mandate.eth'
 
-  const secret = (process.env.REGISTRATION_SECRET as `0x${string}`) ?? randomSecret()
-  if (!process.env.REGISTRATION_SECRET) {
+  const secret = optionalEnv('REGISTRATION_SECRET', randomSecret()) as `0x${string}`
+  if (!process.env.REGISTRATION_SECRET?.trim()) {
     console.log('Generated registration secret (save for re-runs):')
     console.log('  REGISTRATION_SECRET=' + secret)
   }

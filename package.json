@@ -6,13 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "register:identity": "tsx scripts/register-identity.ts",
+    "register:ens": "tsx scripts/register-ens.ts",
+    "read:identity": "tsx scripts/read-identity.ts",
+    "relayer": "tsx scripts/relayer-stub.ts",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
+    "whoami": "tsx scripts/whoami.ts"
   },
   "dependencies": {
     "@ensdomains/ensjs": "^5.0.0-sepolia-fix.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^17.4.2",
     "next": "16.3.4",
+    
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tsx": "^4.23.13",

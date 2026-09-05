@@ -20,7 +20,6 @@
  */
 
 import { createPublicClient, createWalletClient, http, namehash, type Address, type Abi } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 import {
   ENS_PUBLIC_RESOLVER_SEPOLIA,
@@ -28,29 +27,30 @@ import {
   MANDATE_PERMISSIONS_KEY,
 } from './lib/constants.js'
 import { readContract, writeContract } from './lib/client.js'
+import { getAccount, getRpcUrl, optionalEnv } from './lib/config.js'
 
-if (!process.env.SEPOLIA_RPC_URL) throw new Error('SEPOLIA_RPC_URL env var is required')
-if (!process.env.PRIVATE_KEY) throw new Error('PRIVATE_KEY env var is required')
+const account = getAccount()
 
-const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`)
-
-const AGENT_ENS_NAME = process.env.AGENT_ENS_NAME ?? 'testagent.mandate.eth'
-const AGENT_ADDRESS = (process.env.AGENT_ADDRESS ?? '0x0000000000000000000000000000000000000000') as Address
+const AGENT_ENS_NAME = optionalEnv('AGENT_ENS_NAME', 'testagent.mandate.eth')
+const AGENT_ADDRESS = optionalEnv('AGENT_ADDRESS', '0x0000000000000000000000000000000000000000') as Address
 
 // TODO Phase 2: fill in once PermissionMirror is deployed
-const PERMISSION_MIRROR_ADDRESS = (
-  process.env.PERMISSION_MIRROR_ADDRESS ?? '0x0000000000000000000000000000000000000000'
+const PERMISSION_MIRROR_ADDRESS = optionalEnv(
+  'PERMISSION_MIRROR_ADDRESS',
+  '0x0000000000000000000000000000000000000000',
 ) as Address
+
+const rpcUrl = getRpcUrl()
 
 const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.SEPOLIA_RPC_URL),
+  transport: http(rpcUrl),
 })
 
 const walletClient = createWalletClient({
   account,
   chain: sepolia,
-  transport: http(process.env.SEPOLIA_RPC_URL),
+  transport: http(rpcUrl),
 })
 
 // Minimal ABI for PermissionMirror.sync() — matches contracts/PermissionMirror.sol

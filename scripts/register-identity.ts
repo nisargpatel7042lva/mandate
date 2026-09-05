@@ -11,28 +11,26 @@
  */
 
 import { createPublicClient, createWalletClient, http, parseEventLogs } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 import {
   ERC8004_IDENTITY_REGISTRY,
   IDENTITY_REGISTRY_ABI,
 } from './lib/constants.js'
 import { readContract, writeContract } from './lib/client.js'
+import { getAccount, getRpcUrl } from './lib/config.js'
 
-if (!process.env.PRIVATE_KEY) throw new Error('PRIVATE_KEY env var is required')
-if (!process.env.SEPOLIA_RPC_URL) throw new Error('SEPOLIA_RPC_URL env var is required')
-
-const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`)
+const account = getAccount()
+const rpcUrl = getRpcUrl()
 
 const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.SEPOLIA_RPC_URL),
+  transport: http(rpcUrl),
 })
 
 const walletClient = createWalletClient({
   account,
   chain: sepolia,
-  transport: http(process.env.SEPOLIA_RPC_URL),
+  transport: http(rpcUrl),
 })
 
 // The agent registration file we'll publish.

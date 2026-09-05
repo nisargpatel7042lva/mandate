@@ -22,15 +22,14 @@ import {
   MANDATE_POLICY_KEY,
 } from './lib/constants.js'
 import { readContract } from './lib/client.js'
+import { getRpcUrl, optionalEnv } from './lib/config.js'
 
-if (!process.env.SEPOLIA_RPC_URL) throw new Error('SEPOLIA_RPC_URL env var is required')
-
-const AGENT_ID = BigInt(process.env.AGENT_ID ?? '1')
-const ENS_NAME = process.env.ENS_NAME ?? 'testagent.mandate.eth'
+const AGENT_ID = BigInt(optionalEnv('AGENT_ID', '1'))
+const ENS_NAME = optionalEnv('ENS_NAME', 'testagent.mandate.eth')
 
 const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.SEPOLIA_RPC_URL),
+  transport: http(getRpcUrl()),
 })
 
 // Minimal Reputation Registry ABI — source: erc-8004/erc-8004-contracts README
