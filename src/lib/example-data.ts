@@ -18,7 +18,7 @@ export const EXAMPLE_AGENT: Agent = {
   ensName: 'testagent.mandate.eth',
   ownerAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
   agentWallet: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
-  tokenUri: 'https://gist.githubusercontent.com/mandate-agent/testagent/raw/agent-registration.json',
+  tokenUri: 'https://raw.githubusercontent.com/nisargpatel7042lva/mandate/main/public/agent-registration.json',
   tier: 'autonomous',
   trustScore: 87.3,
   trustScoreDelta: 2.1,
