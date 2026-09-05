@@ -17,23 +17,41 @@ export const ERC8004_REPUTATION_REGISTRY =
   '0x8004B663056A597Dffe9eCcC1965A193B7388713' as const
 
 // ─── ENSv2 Contracts on Sepolia ───────────────────────────────────────────────
-// Source: @ensdomains/ensjs v5.0.0-sepolia-fix.1 dist/clients/l2.d.ts (verified 2026-09-04)
-// These are the ENSv2 L2-native contract addresses used by the ENSjs wallet actions.
+// Source: @ensdomains/ensjs v5 `extendChainWithEns(sepolia)`, verified live 2026-09-05.
+//
+// IMPORTANT: ensjs ships TWO address sets and they are not interchangeable.
+//   - `dist/clients/l2.d.ts` -> `ensL2Contracts[11155111]` is the **Namechain**
+//     (ENSv2 L2) deployment. Its key is the chain id 11155111 but the contracts
+//     are NOT the ones deployed on Ethereum Sepolia.
+//   - `extendChainWithEns(sepolia)` is the Ethereum **Sepolia** deployment.
+//
+// Phase 1 originally took the l2.d.ts set. Those addresses exist on Sepolia and
+// even answer `isAvailable()`, but `register()` reverts with
+// PaymentTokenNotSupported and `getRegisterPrice()` reverts for every token —
+// they are a different, non-functional deployment from our perspective.
+// Verified working pair below: getRegisterPrice('mandate', 1yr, usdc) returns
+// base = 7.994534 USDC, premium = 0.
 
-// ethRegistrar — the L2 ETH registrar that handles commit/register
+// ethRegistrar — handles commit/register (ensjs key: ensEthRegistrar)
 export const ENS_L2_REGISTRAR_SEPOLIA =
-  '0x3334f0ebcbc4b5b7067f3aff25c6da8973690d54' as const
+  '0x8c2e866b439358c41ae05de9cbe8a00bfefaffca' as const
+
+// USDC the registrar accepts as payment (ensjs key: usdc). Publicly mintable.
+export const ENS_TESTNET_USDC_SEPOLIA =
+  '0x3dfc8b53dafa5ebbb071a8b97678ab534ed838d9' as const
 
 // ensV2EthRegistry — the L2 ENS registry (name ownership)
 export const ENS_L2_REGISTRY_SEPOLIA =
   '0xF332544e6234f1CA149907D0d4658afD5feB6831' as const
 
-// ensDedicatedResolver — the default public resolver for ENSv2 names on Sepolia
+// ensDedicatedResolver — resolver used for text records
 export const ENS_PUBLIC_RESOLVER_SEPOLIA =
   '0xa20b41dc7336c4d974e3c9a6ea01b77647559c46' as const
 
-// usdc — USDC deployed by ENS team for testnet registration payments
-export const ENS_TESTNET_USDC_SEPOLIA =
+// Superseded Namechain addresses, kept so the mistake is not repeated:
+export const NAMECHAIN_REGISTRAR_UNUSED =
+  '0x3334f0ebcbc4b5b7067f3aff25c6da8973690d54' as const
+export const NAMECHAIN_USDC_UNUSED =
   '0x7Fc21ceb0C5003576ab5E101eB240c2b822c95d2' as const
 
 // ─── Permission encoding constants ────────────────────────────────────────────

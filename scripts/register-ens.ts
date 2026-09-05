@@ -45,11 +45,16 @@ const transport = http(getRpcUrl())
 
 // Extend Sepolia with ENS L1 contracts (ensWalletActions needs the chain config),
 // then add ethRegistrar (ENSv2 L2 registrar) so commitName/registerName work.
+// ensjs's action helpers look up the contracts by the keys `ethRegistrar` and
+// `usdc`, but extendChainWithEns exposes the registrar as `ensEthRegistrar`.
+// Map both explicitly so registerName resolves the working Sepolia deployment
+// rather than the Namechain set (see constants.ts for why that matters).
 const sepoliaWithEns = {
   ...extendChainWithEns(sepolia),
   contracts: {
     ...(extendChainWithEns(sepolia) as any).contracts,
     ethRegistrar: { address: ENS_L2_REGISTRAR_SEPOLIA },
+    usdc: { address: ENS_TESTNET_USDC_SEPOLIA },
   },
 } as any
 
@@ -164,7 +169,7 @@ async function main() {
   await sleep(65_000)
 
   // ── Step 3: Ensure USDC approved ─────────────────────────────────────────
-  await ensureUsdcApproved(10_000_000n)
+  await ensureUsdcApproved(1_000_000_000n) // 1,000 USDC of headroom; price is ~8
 
   // ── Step 4: Register ──────────────────────────────────────────────────────
   console.log('Step 4: Registering mandate.eth...')
