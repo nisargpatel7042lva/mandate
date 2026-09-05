@@ -48,6 +48,19 @@ export const ENS_L2_REGISTRY_SEPOLIA =
 export const ENS_PUBLIC_RESOLVER_SEPOLIA =
   '0xa20b41dc7336c4d974e3c9a6ea01b77647559c46' as const
 
+// The .eth registry that actually holds 2LD ownership on Sepolia. Identified
+// from the register() receipt: it minted the ERC-1155 for mandate.eth to us.
+// ENSv2 token id = labelhash with the low 32 bits cleared.
+export const ENS_ETH_REGISTRY_SEPOLIA =
+  '0xdedb92913a25abe1f7bcdd85d8a344a43b398b67' as const
+
+// VerifiableFactory + user-registry implementation, used to deploy the
+// per-name subregistry that holds a name's children.
+export const ENS_VERIFIABLE_FACTORY_SEPOLIA =
+  '0xd2a632d8a8b67c2c4398c255cbd7af8dd7236198' as const
+export const ENS_USER_REGISTRY_IMPL_SEPOLIA =
+  '0x0f99e7ea74903afcb7224d0354fd7428a6f92917' as const
+
 // Superseded Namechain addresses, kept so the mistake is not repeated:
 export const NAMECHAIN_REGISTRAR_UNUSED =
   '0x3334f0ebcbc4b5b7067f3aff25c6da8973690d54' as const

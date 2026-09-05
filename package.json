@@ -13,7 +13,8 @@
     "relayer": "tsx scripts/relayer-stub.ts",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "whoami": "tsx scripts/whoami.ts",
-    "mint:usdc": "tsx scripts/mint-usdc.ts"
+    "mint:usdc": "tsx scripts/mint-usdc.ts",
+    "create:subname": "tsx scripts/create-subname.ts"
   },
   "dependencies": {
     "@ensdomains/ensjs": "^5.0.0-sepolia-fix.1",
