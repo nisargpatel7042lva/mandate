@@ -230,6 +230,163 @@ permission records written and read back through `npm run read:identity`.
 
 **Spec files used:** `/specs/build-plan.md`
 
+### 2026-09-05 | Backend | Phase 3 (completion — PermissionMirror deployed, subgraph live)
+
+**Task:** Break the circular dependency where the Mandate subgraph couldn't index
+anything because PermissionMirror was undeployed (it had been deferred to Phase 7).
+Deploy the contract independently, fix the subgraph, and get real events indexed.
+
+**Claude Code was asked to:**
+- Add `foundry.toml` and `scripts/deploy-permission-mirror.ts` — deploys from the
+  forge artifact using viem; adds `scripts/lib/client.ts` with a `deployContract`
+  wrapper that works around the viem 2.56 EIP-7702 overload disambiguation problem
+- Fix `scripts/relayer-stub.ts` to read from the per-name ENSv2 resolver instance
+  rather than the implementation address
+- Update `subgraph/subgraph.yaml` — replace zero-address placeholder with real
+  deployed address `0x6f19dd6f…` and set `startBlock: 11642041`
+- Fix `subgraph/package.json` deploy scripts — `--studio` flag removed in graph-cli
+  0.91; Studio is now targeted via explicit deploy node. Pin version label `v0.0.1`
+  to unblock non-interactive runs
+- Fix `subgraph/src/permission-mirror.ts` — `PermissionSynced` carries only agent,
+  ensNode, and syncedAtBlock; the scope fields are not in the event. Handler was
+  writing zeros for all numeric fields. Fixed by calling `contract.getPermissions()`
+  in the mapping and logging a warning rather than silently writing zeros
+- Update `src/lib/mandate-subgraph.ts` — add `NEXT_PUBLIC_MANDATE_SUBGRAPH_URL`
+  preference over gateway URL so Studio dev deployments work without a published
+  subgraph or API key for the gateway
+
+**AI-generated:** `deploy-permission-mirror.ts`, `scripts/lib/client.ts`, the
+`getPermissions` call in the subgraph mapping, subgraph.yaml address + startBlock
+update, deploy script flags, mandate-subgraph.ts Studio URL preference.
+
+**Human-directed / reviewed:** Decision to deploy PermissionMirror in Phase 3 rather
+than waiting for Phase 7 — breaks the coupling between the Graph track (non-negotiable)
+and the 1inch stretch goal (explicitly timeboxed).
+
+**Bugs found and fixed:**
+- Subgraph mapping wrote `allowedProtocols: 0`, `maxPositionSizeUsdc: 0` for a live
+  agent with protocols=7 and limit=10,000 USDC. Root cause: the event does not carry
+  scope fields. Fixed by binding the contract and reading state at the event block.
+- `graph deploy --studio` is not a valid flag in graph-cli 0.91; replaced with
+  explicit deploy node argument.
+
+**Verified live on Sepolia:** PermissionMirror deployed `0x6f19dd6f…`, block 11642041.
+Relayer ran: `isAuthorized = true`, `allowedProtocols = 7`, `allowedPositionTypes = 3`.
+Subgraph indexed the event: `hasIndexingErrors = false`, `syncCount = 1`.
+
+**Spec files used:** `/specs/phase3-graph.md`
+
+### 2026-09-06 | Backend | Phase 3 (completion — Agent0 real schema + underwriting correction)
+
+**Task:** Every Agent0 query was throwing because the schema assumed field names
+(`tokenId`, `uri`, `registeredAt`, `agentReputation`) that do not exist. Correct
+the client against the live schema and fix two critical underwriting bugs discovered
+during the live run.
+
+**Claude Code was asked to:**
+- Rewrite `src/lib/agent0.ts` — introspected the live schema; real entity is `Agent`
+  with composite id `"<chainId>:<agentId>"`, fields: `agentId`, `agentURI`,
+  `agentWallet`, `owner`, `createdAt`, `lastActivity`, `totalFeedback`. Reputation
+  computed from `feedbacks` rows (`value`, `tag1`, `isRevoked`, `clientAddress`),
+  not a subgraph-computed field. `AGENT0_INDEXED_CHAIN_ID = '8453'` (Base Mainnet
+  only). Endpoint resolved per-call to avoid dotenv timing issue.
+- Rewrite `src/lib/underwriting.ts` — ERC-8004 score formula updated to 4-component
+  model: `40 × clientDiversity + 30 × valueQuality + 20 × (1 − revocationRate) +
+  10 × activityPercentile`. Weighted-absence model: when no Agent0 record, weights
+  renormalise onto MandateHistory alone rather than scoring zero.
+- Update `src/lib/mandate-subgraph.ts` — endpoint resolved per-call (not module load)
+- Add `scripts/underwrite.ts` + `npm run underwrite` — end-to-end composition test
+  with optional protocol and amount args
+
+**AI-generated:** Full rewrite of `agent0.ts` against introspected schema; updated
+underwriting formula with 4-component ERC-8004 score; `scripts/underwrite.ts`;
+`agent0Endpoint()` and `mandateEndpoint()` per-call resolution pattern.
+
+**Human-directed / reviewed:** The identity-match guard (discard Agent0 records whose
+`owner` or `agentWallet` doesn't match the address being underwritten) — ERC-8004 ids
+are unique per chain, so looking up Sepolia agentId 10099 against the Base-only subgraph
+matched a real but unrelated agent (0x7ae2a784…) and was attributing a stranger's
+reputation score of 54 to our agent. The guard was the critical safety fix.
+
+**Bugs found and fixed:**
+- Agent0 subgraph indexes Base Mainnet only (`chainId = "8453"`); our agent is on
+  Sepolia — it has no row. Scoring that absence as zero asserted "bad" where we only
+  know "unknown" and caused the authorized path to fail. Fixed by `null` return with
+  weights renormalised to the evidence available.
+- Both GraphQL clients resolved their endpoint at module load, before `dotenv` runs
+  in script entrypoints — silently produced empty data with no error. Fixed by moving
+  resolution into a function called at use-time.
+- `agentReputation` entity used in the original file does not exist in the schema;
+  the most-active indexed agent has 308,874 feedback entries from 2 addresses (a
+  sybil pattern), so raw count is not a trust signal — replaced with diversity score.
+
+**Verified live:** `npm run underwrite` returns real composed data; authorized,
+protocol-not-allowlisted, over-position-limit, and over-daily-cap paths all correct.
+
+**Spec files used:** `/specs/phase3-graph.md`
+
+### 2026-09-06 | Backend | Phase 3 (completion — MCP server working + publicly deployed)
+
+**Task:** The MCP server had never compiled or run — `@modelcontextprotocol/sdk` was
+not a dependency. Get it working locally, then make it publicly reachable (required
+by The Graph's AI Tooling track).
+
+**Claude Code was asked to:**
+- Install `@modelcontextprotocol/sdk@1.30.0` and update `mcp/server.ts` for the
+  corrected `fetchAgent0Data` signature and nullable ERC-8004 component
+- Add `src/lib/mcp-tools.ts` — shared tool definitions (get_agent_authority,
+  check_permission, get_risk_score) so the standalone server and the Next.js route
+  cannot drift
+- Add `src/app/api/mcp/route.ts` — serves the MCP endpoint from the Next.js app
+  using `WebStandardStreamableHTTPServerTransport`. `export const runtime = 'nodejs'`,
+  `export const dynamic = 'force-dynamic'`. GET returns a human-readable description.
+  Server is deliberately not closed after `handleRequest` — the response body is still
+  streaming; closing tears it down before any data is written.
+- Update `mcp/server.ts` to import from `src/lib/mcp-tools.ts`
+
+**AI-generated:** `src/lib/mcp-tools.ts`; `src/app/api/mcp/route.ts`; MCP SDK
+installation; streaming-close explanation in comments.
+
+**Human-directed / reviewed:** Decision to serve MCP from Next.js rather than a
+standalone host — means it deploys with the frontend and shares its lifetime without
+a second process to keep alive for the demo.
+
+**Bugs found and fixed:**
+- `@modelcontextprotocol/sdk` was imported but never added to `package.json` — server
+  failed at import, had never compiled.
+- Agent0 record for Sepolia agentId 10099 matched `8453:10099` (a different chain's
+  agent owned by `0x7ae2a784…`) and returned `erc8004Score: 54` from a stranger's
+  reputation. Fixed by owner/wallet identity guard in underwriting.ts.
+
+**Verified live:** `initialize`, `tools/list`, and all three MCP tools answer with
+real composed data at `https://mandate-rho.vercel.app/api/mcp`. Authorized,
+protocol-not-allowlisted, over-position-limit, and over-daily-cap paths all correct.
+
+**Spec files used:** `/specs/phase3-graph.md`
+
+### 2026-09-06 | Both | Architecture documentation + UI/Backend handoff
+
+**Task:** ARCHITECTURE.md still described the pre-Phase-1 plan (PermissionMirror
+undeployed, Namechain registrar/USDC addresses). HANDOFF.md did not exist. Write
+both so Track U can replace example fixtures without repeating Track B's debugging.
+
+**Claude Code was asked to:**
+- Rewrite `ARCHITECTURE.md` address table — replace every pre-Phase-1 placeholder
+  with real deployed addresses, each with its transaction or source. Add ENSv2
+  addresses discovered via actual transaction receipts (not the ensjs dist, which
+  carries Namechain addresses that revert on Sepolia).
+- Write `HANDOFF.md` — setup without a wallet, live agent values (agentId 10099,
+  ENS name, address, scope), three data-access options (MCP / composeRiskScore /
+  raw subgraph), fixture-to-live mapping per screen, bitmask and 6-decimal USDC
+  traps, explicit list of what is not built so those screens keep example-data banners
+
+**AI-generated:** Full HANDOFF.md; ARCHITECTURE.md address table rewrite.
+
+**Human-directed / reviewed:** None — Siddharth wrote this as the handoff to Nisarg
+after completing Phase 3. Content verified against live on-chain state.
+
+**Spec files used:** `/specs/build-plan.md`
+
 ### 2026-09-06 | UI | Phase 4
 
 **Task:** Wire all three UI screens to live on-chain data — replace every example

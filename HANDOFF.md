@@ -37,6 +37,19 @@ ENS_NAME=testagent.mandate.eth
 
 These are already set in Vercel. Ask if you want the Graph key rather than making your own.
 
+## 2b. New pages (added Phase 4–8)
+
+| Route | What it does | Key data source |
+|---|---|---|
+| `/execute` | Interactive trade-attempt demo screen | `POST /api/check` → `composeRiskScore` live |
+| `/treasury` | Live Arc testnet balance + auth trail | `getArcBalance()` (viem), `fetchRecentUpdates()` |
+| `/dashboard` | Policy strip, kill switch, spend meter | `getAgentLiveData()` |
+| `/` | Agent overview, trust score, scope | `getAgentLiveData()` |
+| `/transactions/blocked` | Blocked TX enforcement trace | `getBlockedScenario()` |
+
+Kill switch requires `PRIVATE_KEY` + `SEPOLIA_RPC_URL` server-side. All read-only pages
+need only the Graph API key and subgraph URL.
+
 ## 3. The live agent
 
 | | |
@@ -109,13 +122,15 @@ Helpers already exist in `src/lib/mandate-subgraph.ts`: `fetchAgentScope`,
 
 ## 5. Mapping the existing screens
 
-| Fixture | Replace with |
-|---|---|
-| `EXAMPLE_AGENT.permissions` | `composeRiskScore(...)` → `allowedProtocols` / `maxPositionSizeUsdc` / `maxDailySpendUsdc` / `scopeExpiry` |
-| `EXAMPLE_AGENT.trustScore` | `result.trustScore` |
-| `EXAMPLE_BLOCKED_TX.enforcementChain` | `result.reasons` — already ordered and human-readable |
-| `EXAMPLE_TRADES` | `fetchRecentUpdates()` for sync history. **There is no trade log yet** — trades arrive in Phase 5 (Arc). Keep fixtures here and keep the "example data" banner. |
-| `EXAMPLE_TREASURY` / `EXAMPLE_SETTLEMENTS` | Phase 5, not built. Keep fixtures + banner. |
+| Fixture | Status | Replace with |
+|---|---|---|
+| `EXAMPLE_AGENT.permissions` | ✅ Phase 4 done | `getAgentLiveData()` in `src/lib/server-data.ts` |
+| `EXAMPLE_AGENT.trustScore` | ✅ Phase 4 done | `data.trustScore` from `getAgentLiveData()` |
+| `EXAMPLE_BLOCKED_TX.enforcementChain` | ✅ Phase 4 done | `getBlockedScenario()` → real gmx-perp check |
+| `EXAMPLE_TRADES` | 🟠 Phase 5 pending | `fetchRecentUpdates()` for auth history; real trade log needs Arc settlement |
+| `EXAMPLE_TREASURY` balance | ✅ Phase 6 done | `getArcBalance()` in `src/lib/arc-data.ts` — live Arc testnet |
+| `EXAMPLE_SETTLEMENTS` | 🟠 Phase 5 pending | No real Arc USDC transfers exist yet; empty state wired |
+| Execute / trade-attempt flow | ✅ Phase 8 done | `/execute` page + `POST /api/check` route |
 
 ## 6. Things that will trip you up
 
@@ -148,11 +163,30 @@ npm run underwrite -- curve 12000       # over position limit
 npm run read:identity                   # full on-chain read-back
 ```
 
-## 9. Not built yet — do not wire these
+## 9. What is and isn't built — current state as of 2026-09-06
 
-- Trade execution and the trade log (Phase 7, stretch)
-- Treasury, settlements, USDC balances (Phase 5, not started)
-- Reputation write-back (Phase 5)
+### Done (UI track, Phases 4 / 6 / 8)
 
-Keep the "example data" banners on those screens. They are honest and the build plan
-asks for it.
+- **`/` — Agent Overview**: live trust score, scope, protocols, expiry from subgraph
+- **`/dashboard` — Dashboard**: live policy strip (allowed/blocked/expiry), live daily limit
+- **`/transactions/blocked` — Blocked TX**: live gmx-perp enforcement check, real reasons
+- **`/execute` — Execute**: interactive trade-attempt with animated underwriting steps;
+  `POST /api/check` calls `composeRiskScore` live; three preset demo scenarios
+- **`/treasury` — Treasury**: live Arc testnet USDC balance (block number shown);
+  authorization trail from `PermissionUpdate` subgraph entities (real Sepolia tx hashes);
+  kill switch calls real `/api/revoke` → PermissionMirror.sync(expiry=0)
+
+### Still pending Phase 5 (Arc/Circle settlement — not started)
+
+- Real Arc USDC transfers — no settlements exist to show yet
+- Trade log — Arc settlement events needed to populate it
+- Reputation write-back to ERC-8004 registry
+- Funding flow (deposit USDC into agent's Circle wallet) — no API shape exposed yet
+
+### Still pending Phase 7 (MandateGate — stretch goal, timeboxed)
+
+- On-chain MandateGate opcode enforcement
+- `/execute` currently uses off-chain `composeRiskScore`; a footer note says so honestly
+
+Keep "example data" banners on trade log and settlement history — they are honest and
+the build plan requires it.
