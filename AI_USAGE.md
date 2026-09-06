@@ -229,3 +229,119 @@ design. Also rejected a redundant hand-rolled `.env` parser in favour of the
 permission records written and read back through `npm run read:identity`.
 
 **Spec files used:** `/specs/build-plan.md`
+
+### 2026-09-06 | UI | Phase 4
+
+**Task:** Wire all three UI screens to live on-chain data — replace every example
+fixture with real calls to the Mandate subgraph, Agent0 subgraph, and composed
+underwriting logic.
+
+**Claude Code was asked to:**
+- Build `src/lib/server-data.ts` — server-side data layer: `LIVE_AGENT` constants
+  (verified on-chain values), `getAgentLiveData()` (async, returns plain serialisable
+  types — no BigInts — safe for RSC), `getBlockedScenario()` (live gmx-perp check),
+  `decodeProtocols()` / `decodePositionTypes()` / `usdcToNumber()` helpers
+- Rewrite `src/app/page.tsx` to async server component — live trust score, permission
+  scope, protocols, expiry; DataSourceBanner with three states (live/syncing/error)
+- Rewrite `src/app/dashboard/page.tsx` to async server component — live policy strip
+  (allowed/blocked/expiry columns from decoded bitmasks), live maxDailySpendUsdc for
+  spend meter limit
+- Rewrite `src/app/transactions/blocked/page.tsx` to async server component — calls
+  `getBlockedScenario()` (real gmx-perp permission check), `parseEnforcementChain()`
+  maps raw reason strings to 6 named steps with pass/fail, live allowed-protocols
+  in "Agent May Use Instead" card
+- Build `src/app/api/revoke/route.ts` — kill-switch backend: reads current scope via
+  `getPermissions`, syncs with expiry=1n via `walletClient.writeContract`, returns
+  `{ revoked, txHash, blockNumber, explorerUrl }`, returns 503 gracefully when
+  PRIVATE_KEY is not set
+- Update `src/components/dashboard/KillSwitch.tsx` — now calls real `/api/revoke`;
+  revoked state shows live Sepolia Etherscan tx link; error state shows server message
+  without crashing when key is absent
+
+**AI-generated:** All of `server-data.ts`; the RSC async conversion of all three
+pages; the enforcement-chain parser and step mapping; the `/api/revoke` route using
+viem `writeContract`; `KillSwitch` state machine with txHash display.
+
+**Human-directed / reviewed:** The decision to use a server-side API route for the
+kill switch (avoids browser wallet dependency for the demo); the bitmask values and
+6-decimal USDC convention (confirmed from Siddharth's Phase 3 output); the
+`erc8004Score = null` vs zero distinction (prevents silently denying all trades for
+a Sepolia agent not indexed on Base Mainnet).
+
+**Bugs found and fixed:**
+- `next: { revalidate }` is a Next.js fetch extension not in standard `RequestInit` —
+  caused TS error under `tsconfig.scripts.json`; fixed with `as object` cast in both
+  `agent0.ts` and `mandate-subgraph.ts`.
+- BigInt values from subgraph cannot pass through RSC payload — converted all to
+  `number` or `string` in `getAgentLiveData()` before returning.
+- PermissionMirror `sync()` takes the full scope struct, not just expiry — must read
+  current scope first, then replay it with `expiry = 1n`.
+
+**Spec files used:** `/specs/phase4-ui.md`
+
+### 2026-09-06 | UI | Phase 6
+
+**Task:** Treasury/settlement UI — live Arc testnet USDC balance and authorization
+trail; honest empty-state for settlements pending Phase 5.
+
+**Claude Code was asked to:**
+- Build `src/lib/arc-data.ts` — `getArcBalance(address)` using viem `getBalance` on
+  `arcTestnet` chain (chain ID 5042002, confirmed from `viem/chains/definitions/arcTestnet.ts`).
+  Arc's native currency is USDC with 18 decimals. `arcExplorerTx()` / `arcExplorerAddr()`
+  URL builders using confirmed ArcScan base URL from viem chain definition.
+- Rewrite `src/app/treasury/page.tsx` — async server component calling `getArcBalance()`,
+  `getAgentLiveData()`, and `fetchRecentUpdates()` in parallel. Balance card shows real
+  Arc testnet block number as proof of live connection. Authorization trail renders real
+  `PermissionUpdate` entities from Mandate subgraph with Sepolia Etherscan tx links.
+  Settlement history shows honest empty state explaining Phase 5 dependency.
+  Funding section shows "Phase 5 pending" — no assumed API shape.
+
+**AI-generated:** All of `arc-data.ts`; the treasury page rewrite; the authorization
+trail component using live subgraph `PermissionUpdate` entities; ArcScan URL builders.
+
+**Human-directed / reviewed:** The decision not to design a funding flow (Phase 5
+hasn't exposed an API shape — the prompt explicitly requires confirming what's available
+before building around it). The distinction between "authorization events" (real Sepolia
+PermissionSynced evidence, live now) and "Arc settlements" (Phase 5 required, not yet
+real).
+
+**Verified live:** Arc testnet RPC responding at block 60,731,658; chain ID 0x4cef52
+= 5042002; agent balance $0.00 USDC (unfunded pending Phase 5 — correct, not broken);
+ArcScan API responding at `https://testnet.arcscan.app/api`.
+
+**Spec files used:** `/specs/phase6-ui.md`
+
+### 2026-09-06 | UI | Phase 8
+
+**Task:** Execution UI — the demo-moment screen. Interactive trade-attempt flow with
+real-time underwriting animation, unmistakable blocked state, 15-second comprehension
+target for first-time viewers.
+
+**Claude Code was asked to:**
+- Build `src/app/api/check/route.ts` — `POST /api/check` accepts `{ protocol, amountUsdc }`
+  (whole-dollar amount), calls `composeRiskScore` with live Graph data, maps the raw
+  `reasons[]` array into 5 named steps (Trust Score, Permission Scope, Protocol Allowlist,
+  Position Size, Daily Spending Cap) each with `pass/fail/skip` status and a plain-English
+  detail string. Derives `primaryBlock` (one sentence, no raw revert string) and
+  `primaryBlockDetail` (raw reason, for technical viewers). Returns `latencyMs`.
+- Build `src/app/execute/page.tsx` — `'use client'` component. Three preset trade buttons
+  pre-labeled with expected outcome ("Should pass" / "Not in allowlist" / "Exceeds position
+  limit"). Custom protocol + amount form. Sequential step animation: each step shows
+  "checking" spinner then resolves to pass/fail at 550ms intervals; fail stops and skips
+  remaining steps. BLOCKED verdict: full-width red panel, plain-English primary reason,
+  raw technical detail. APPROVED verdict: green panel, "MandateGate clears", greyed-out
+  Arc settlement CTA (Phase 5 pending). Latency + data source footnote.
+- Update `src/components/layout/Sidebar.tsx` — Execute added as first nav item.
+
+**AI-generated:** All of `/api/check/route.ts`; all of `execute/page.tsx`; sidebar update.
+
+**Human-directed / reviewed:** The decision to animate steps on the client after a single
+API call (not separate per-step calls) — real data, UX pacing. The three specific preset
+scenarios cover all three underwriting failure modes in the demo. "MandateGate clears" /
+"MandateGate reverts" language connects the UI to the on-chain enforcement story.
+
+**Current limitation:** Without `NEXT_PUBLIC_MANDATE_SUBGRAPH_URL` set, every check blocks
+at "Permission Scope". All three failure modes demonstrate correctly once the subgraph URL
+is configured.
+
+**Spec files used:** `/specs/phase8-ui.md`
