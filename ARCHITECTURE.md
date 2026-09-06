@@ -1,6 +1,7 @@
 # Mandate — Architecture
 
-> **Status:** Phase 2 UI complete. Phase 3 data layer skeleton built — live run awaits credentials.
+> **Status:** Phases 1 and 3 complete and live on Sepolia. Phase 5 (Arc settlement)
+> and Phase 7 (MandateGate) not started. Every address below is verified on-chain.
 
 ## Overview
 
@@ -17,7 +18,7 @@ both its policy AND its live reputation score — enforced inside the swap execu
 - `agentURI` points to a publicly resolvable JSON registration file
 - `ownerOf(agentId)` = controller EOA; `getAgentWallet(agentId)` = execution wallet
 
-**ENSv2 Permission Schema** (Sepolia dedicated resolver `0xa20b41dc7336c4d974e3c9a6ea01b77647559c46`)
+**ENSv2 Permission Schema** (per-name resolver `0x47199acbb8cf8766c67a4853574e945c8e795005`)
 - Each agent gets an ENS subname: `<agent>.mandate.eth`
 - Two text records store the machine-readable permission scope:
   - `mandate.permissions` — JSON: allowedProtocols (array), allowedPositionTypes (array),
@@ -27,7 +28,7 @@ both its policy AND its live reputation score — enforced inside the swap execu
 - Chosen over ENSv2 EAC because standard `setText`/`text` is simpler, auditable, and
   readable by any ENS tooling without EAC bitmask schema uncertainty.
 
-**PermissionMirror** (`contracts/PermissionMirror.sol`, not yet deployed)
+**PermissionMirror** (`0x6f19dd6f759fac8a19579ecdefb342009a21d9a7`, deployed Sepolia block 11642041)
 - Kept as an architecture artifact for the cross-chain fallback pattern (see below)
 - In the single-chain prototype, MandateGate reads ENSv2 directly; PermissionMirror
   becomes relevant if the execution chain differs from Sepolia.
@@ -72,7 +73,7 @@ Authorization decision (all must hold):
 - Tools: `get_agent_authority`, `check_permission`, `get_risk_score`
 - Each tool fetches from live subgraphs — no fixtures
 
-### 3. Enforcement & Execution (1inch SwapVM, self-deployed on Sepolia) — Phase 2
+### 3. Enforcement & Execution (1inch SwapVM, self-deployed on Sepolia) — Phase 7, stretch
 
 **MandateGate** — custom SwapVM opcode
 - Reads agent permission scope from ENSv2 resolver (same chain, synchronous)
@@ -82,7 +83,7 @@ Authorization decision (all must hold):
 **SwapVM Router** — to be self-deployed on Sepolia per `1inch/swap-vm` DEPLOY.md
 - Opcode registration: `_runOpcode` dispatcher pattern (confirmed from `src/SwapVM.sol`)
 
-### 4. Settlement & Reputation Write-back (Circle Arc, Sepolia) — Phase 2
+### 4. Settlement & Reputation Write-back (Circle Arc) — Phase 5, not started
 
 Arc Agent Stack SDK → USDC settlement after approved trades. Reputation write-back to
 ERC-8004 Reputation Registry on settled trades. Testnet endpoint TBD from Circle docs.
@@ -134,17 +135,50 @@ MandateGate then reads from PermissionMirror instead of ENSv2 directly.
 
 ---
 
-## Deployed Addresses (Sepolia)
+## Deployed Addresses (Sepolia) — all verified on-chain 2026-09-06
 
-| Contract                  | Address                                      | Source |
-|---------------------------|----------------------------------------------|--------|
-| ERC-8004 IdentityRegistry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | erc-8004/erc-8004-contracts |
-| ERC-8004 ReputationRegistry | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | erc-8004/erc-8004-contracts |
-| ENSv2 ethRegistrar        | `0x3334f0ebcbc4b5b7067f3aff25c6da8973690d54` | ensjs v5 dist/clients/l2.d.ts |
-| ENSv2 ensV2EthRegistry    | `0xF332544e6234f1CA149907D0d4658afD5feB6831` | ensjs v5 dist/clients/l2.d.ts |
-| ENSv2 dedicatedResolver   | `0xa20b41dc7336c4d974e3c9a6ea01b77647559c46` | ensjs v5 dist/clients/l2.d.ts |
-| ENSv2 testnet USDC        | `0x7Fc21ceb0C5003576ab5E101eB240c2b822c95d2` | ensjs v5 dist/clients/l2.d.ts |
-| Aqua                      | TBD — self-deploy in Phase 2                 | |
-| MandateRouter (SwapVM)    | TBD — self-deploy in Phase 2                 | |
-| MandateGate               | TBD — Phase 2                                | |
-| PermissionMirror          | TBD — Phase 2 (if cross-chain needed)        | |
+### Ours
+
+| What | Address / value | Evidence |
+|------|-----------------|----------|
+| ERC-8004 agentId | `10099` | tx `0xf2545fe2…`, block 11641781 |
+| Agent signer / owner | `0xa0062C5066cF0B34010D7c4E90F68E4287D083a8` | |
+| ENS name | `mandate.eth` | tx `0xd0762cc8…`, block 11641955 |
+| ENS subname | `testagent.mandate.eth` | tx `0x5196898a…`, block 11641992 |
+| Name subregistry | `0x907779eaec2f678bf91c2580b2fd8b395cf42775` | |
+| Agent resolver | `0x47199acbb8cf8766c67a4853574e945c8e795005` | holds `mandate.permissions` + `mandate.policy` |
+| PermissionMirror | `0x6f19dd6f759fac8a19579ecdefb342009a21d9a7` | block 11642041 |
+| Registration file | `raw.githubusercontent.com/nisargpatel7042lva/mandate/main/public/agent-registration.json` | on-chain `tokenURI`, HTTP 200 |
+
+### Third-party
+
+| Contract | Address | Source |
+|----------|---------|--------|
+| ERC-8004 IdentityRegistry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | EIP-1967 proxy -> impl `0x7274e874…9c02` |
+| ERC-8004 ReputationRegistry | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | erc-8004 contracts |
+| ENSv2 ethRegistrar | `0x8c2e866b439358c41ae05de9cbe8a00bfefaffca` | `extendChainWithEns(sepolia)` |
+| ENSv2 .eth registry | `0xdedb92913a25abe1f7bcdd85d8a344a43b398b67` | from the register receipt |
+| ENSv2 payment USDC | `0x3dfc8b53dafa5ebbb071a8b97678ab534ed838d9` | registrar-accepted; publicly mintable |
+| VerifiableFactory | `0xd2a632d8a8b67c2c4398c255cbd7af8dd7236198` | deploys subregistries + resolvers |
+| DedicatedResolver impl | `0xa20b41dc7336c4d974e3c9a6ea01b77647559c46` | implementation only — deploy per name |
+
+> **Do not use** `0x3334f0eb…` (registrar) or `0x7Fc21ceb…` (USDC). Those are the
+> **Namechain** deployment that ensjs keys under chain id 11155111. They exist on
+> Sepolia and answer `isAvailable()`, but `register()` reverts with
+> `PaymentTokenNotSupported`. See ASSUMPTIONS.md.
+
+### Endpoints
+
+| Service | URL |
+|---------|-----|
+| MCP server (public) | `https://mandate-rho.vercel.app/api/mcp` |
+| Mandate subgraph | `https://api.studio.thegraph.com/query/1758732/mandate-subgraph/v0.0.2` |
+| Agent0 subgraph | gateway id `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb` (Base Mainnet only) |
+
+### Not yet deployed
+
+| | Phase |
+|---|---|
+| Aqua / SwapVM router | 7 — stretch, timeboxed to Sept 11 |
+| MandateGate opcode | 7 — stretch |
+| Circle Arc settlement | 5 — not started |

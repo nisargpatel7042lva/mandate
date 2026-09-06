@@ -100,7 +100,10 @@ the phase's own definition of done. **Nothing here is verified running yet.**
       Next.js app so it ships with the frontend. Verified live end to end.
 
 ### 3.5 — Handoff to Nisarg
-- [ ] Publish the real query shape to Nisarg — MCP endpoint + composeRiskScore signature
+- [x] `HANDOFF.md` written — env, live agent values, three ways to call the data,
+      fixture-to-live mapping, gotchas, and what is deliberately not built yet
+- [x] `ARCHITECTURE.md` corrected — it still listed the Namechain addresses that do
+      not work and said PermissionMirror was undeployed
 
 **Definition of done (unchanged):** an actual transcript of the MCP server answering a
 real question about agent 10099, sourced from live Subgraph Studio data.
