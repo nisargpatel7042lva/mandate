@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 const NAV_ITEMS = [
+  { href: '/execute',     label: 'Execute',    icon: '▷' },
   { href: '/',            label: 'Agent',      icon: '◈' },
   { href: '/dashboard',   label: 'Dashboard',  icon: '⊞' },
   { href: '/treasury',    label: 'Treasury',   icon: '◎' },
