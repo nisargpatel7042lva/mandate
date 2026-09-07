@@ -533,3 +533,35 @@ No new features — verification only.
 data. All 5 routes return 200. Latency 6–15ms per underwriting check.
 
 **Spec files used:** `/specs/phase9-integration.md`
+
+### 2026-09-07 | Backend | Phase 5 (Arc settlement + reputation write-back)
+
+**Task:** Move real USDC on Arc testnet for an approved trade, tie the movement to the
+underwriting decision that authorised it, and write the outcome back to reputation.
+
+**Claude Code was asked to:** resolve the open Arc unknowns before writing code, build
+the settlement loop, and close the reputation loop.
+
+**AI-generated:** `src/lib/arc-settlement.ts`, `scripts/settle.ts`, `getClientAccount`
+in `scripts/lib/config.ts`, the corrected reputation ABI in `scripts/read-identity.ts`.
+
+**Human-directed / reviewed:** Chose to work through Phase 5 as the next priority.
+Earlier in the session, rejected server-side kill-switch signing in favour of the owner's
+own wallet, which removed the last signing key from the deployed app.
+
+**Findings that changed the design:**
+- Circle's Agent Stack starter kits support Base and Polygon only and wrap a `circle`
+  shell CLI. They are not an Arc SDK, so settlement is built directly on Arc with viem.
+- Arc's native currency is USDC at 18 decimals, so settlement is a value transfer with
+  no token contract and no approval.
+- ERC-8004 rejects self-feedback, so the agent owner cannot write its own reputation.
+  Settlement writes it from a counterparty account instead.
+- The Phase 1 `getSummary` ABI had the wrong types for the tags and the count, so every
+  reputation read had been silently failing behind a misleading "expected for a fresh
+  agent" message.
+
+**Verified live:** underwriting gates settlement (denied trades never reach the transfer);
+reputation write-back tx `0x42bb23e5...`; `getSummary` returns count 1, value 1.00 from
+client `0x7b77781A...`. The Arc transfer itself is blocked only on faucet funding.
+
+**Spec files used:** `/specs/build-plan.md`

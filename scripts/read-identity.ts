@@ -36,7 +36,10 @@ const publicClient = createPublicClient({
   transport: http(getRpcUrl()),
 })
 
-// Minimal Reputation Registry ABI — source: erc-8004/erc-8004-contracts README
+// Reputation Registry ABI — verified against
+// github.com/erc-8004/erc-8004-contracts/abis/ReputationRegistry.json.
+// The tags are `string`, not bytes32, and count is uint64 — the Phase 1 version
+// guessed both and getSummary reverted on every call as a result.
 const REPUTATION_REGISTRY_ABI: Abi = [
   {
     name: 'getSummary',
@@ -45,14 +48,21 @@ const REPUTATION_REGISTRY_ABI: Abi = [
     inputs: [
       { name: 'agentId', type: 'uint256' },
       { name: 'clientAddresses', type: 'address[]' },
-      { name: 'tag1', type: 'bytes32' },
-      { name: 'tag2', type: 'bytes32' },
+      { name: 'tag1', type: 'string' },
+      { name: 'tag2', type: 'string' },
     ],
     outputs: [
-      { name: 'count', type: 'uint256' },
+      { name: 'count', type: 'uint64' },
       { name: 'summaryValue', type: 'int128' },
       { name: 'summaryValueDecimals', type: 'uint8' },
     ],
+  },
+  {
+    name: 'getClients',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'agentId', type: 'uint256' }],
+    outputs: [{ type: 'address[]' }],
   },
 ]
 
@@ -94,18 +104,34 @@ async function main() {
   console.log('\n─── ERC-8004 Reputation Registry ───')
   console.log('Registry:', ERC8004_REPUTATION_REGISTRY)
 
+  // getSummary rejects an empty clientAddresses array ("clientAddresses required"),
+  // so the client list has to be fetched first and passed in.
   try {
-    const result = await readContract<[bigint, bigint, number]>(publicClient, {
+    const clients = await readContract<string[]>(publicClient, {
       address: ERC8004_REPUTATION_REGISTRY,
       abi: REPUTATION_REGISTRY_ABI,
-      functionName: 'getSummary',
-      args: [AGENT_ID, [], `0x${'0'.repeat(64)}`, `0x${'0'.repeat(64)}`],
+      functionName: 'getClients',
+      args: [AGENT_ID],
     })
-    const [count, summaryValue, summaryValueDecimals] = result
-    console.log('Feedback count:', count.toString())
-    console.log('Summary value: ', summaryValue.toString(), '(decimals:', summaryValueDecimals, ')')
+    console.log('Clients:       ', clients.length ? clients.join(', ') : '(none yet)')
+
+    if (clients.length === 0) {
+      console.log('Feedback:       none — no counterparty has scored this agent yet')
+    } else {
+      const [count, summaryValue, summaryValueDecimals] = await readContract<
+        [bigint, bigint, number]
+      >(publicClient, {
+        address: ERC8004_REPUTATION_REGISTRY,
+        abi: REPUTATION_REGISTRY_ABI,
+        functionName: 'getSummary',
+        args: [AGENT_ID, clients, '', ''],
+      })
+      const scaled = Number(summaryValue) / 10 ** Number(summaryValueDecimals)
+      console.log('Feedback count:', count.toString())
+      console.log('Summary value: ', scaled, `(raw ${summaryValue}, ${summaryValueDecimals} dp)`)
+    }
   } catch (err: any) {
-    console.log('Reputation read error (expected for fresh agent):', err.shortMessage ?? err.message)
+    console.log('Reputation read error:', err.shortMessage ?? err.message)
   }
 
   // ── ENSv2 Permission Records ──────────────────────────────────────────────

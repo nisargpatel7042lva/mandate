@@ -50,3 +50,16 @@ export interface ContractDeployParams {
 export function deployContract(client: any, params: ContractDeployParams): Promise<Hash> {
   return client.deployContract(params) as Promise<Hash>
 }
+
+export interface SendTxParams {
+  to: `0x${string}`
+  value: bigint
+  chain?: unknown
+  account?: unknown
+}
+
+/** Same overload problem again: TypeScript picks the blob variant and wants `kzg`. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sendTransaction(client: any, params: SendTxParams): Promise<Hash> {
+  return client.sendTransaction(params) as Promise<Hash>
+}

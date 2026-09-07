@@ -30,6 +30,31 @@ export function getRpcUrl(): string {
 }
 
 /** Resolve the signing account from the environment. */
+/**
+ * A second account, acting as the settlement counterparty.
+ *
+ * ERC-8004's ReputationRegistry rejects self-feedback ("Self-feedback not
+ * allowed"), so the agent's own owner cannot write its reputation — feedback
+ * has to come from a client. On testnet we use another account derived from the
+ * same mnemonic to stand in for that counterparty. Disclosed in ASSUMPTIONS.md;
+ * in production this would be the actual trade counterparty.
+ */
+export function getClientAccount() {
+  const mnemonic = process.env.MNEMONIC?.trim()
+  if (mnemonic) {
+    return mnemonicToAccount(mnemonic, {
+      addressIndex: Number(process.env.CLIENT_ACCOUNT_INDEX?.trim() || '0'),
+    })
+  }
+  const pk = process.env.CLIENT_PRIVATE_KEY?.trim()
+  if (pk) {
+    return privateKeyToAccount((pk.startsWith('0x') ? pk : `0x${pk}`) as `0x${string}`)
+  }
+  throw new Error(
+    'Settlement feedback needs a second account: set MNEMONIC (with CLIENT_ACCOUNT_INDEX) or CLIENT_PRIVATE_KEY',
+  )
+}
+
 export function getAccount() {
   const pk = process.env.PRIVATE_KEY?.trim()
   if (pk) {

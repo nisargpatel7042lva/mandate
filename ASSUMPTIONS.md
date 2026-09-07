@@ -147,9 +147,39 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
 
 ## Circle / Arc
 
-- `[UNVERIFIED]` Arc Agent Stack testnet endpoint URL and SDK method signatures —
-  not yet read from Circle developer docs. Need to confirm before Phase 2 settlement work.
-  **Blocking: Phase 2 (Arc settlement).**
+- `[RESOLVED]` **Arc and Circle's Agent Stack are two different things.** The Agent
+  Stack starter kits (`circlefin/agent-stack-starter-kits`) wrap a `circle` shell CLI
+  and support **Base and Polygon only** — `packages/circle-tools/src/chains.ts` defines
+  exactly `BASE` and `POLYGON`, and wallet creation, funding and transfers are done by
+  the agent shelling out to `circle`. It is agent service payment over x402, not an Arc
+  SDK. There is no `@circle-fin/agent-stack` package on npm.
+
+- `[RESOLVED]` Arc testnet: chain id **5042002**, RPC `https://rpc.testnet.arc.network`,
+  explorer `https://testnet.arcscan.app`. Verified live (`eth_chainId` -> `0x4cef52`).
+  Confirmed against viem's own `arcTestnet` definition, which ships in the installed
+  package.
+
+- `[RESOLVED]` **Arc's native currency IS USDC, with 18 decimals** — not the usual 6, and
+  not an ERC-20. Settlement is therefore a native value transfer with no token contract
+  and no approval step. This is what "stablecoin-native" means here.
+
+- `[RESOLVED]` Arc testnet USDC comes from `https://faucet.circle.com` (select Arc
+  Testnet): 20 USDC per address every 2 hours.
+
+- `[RESOLVED]` **ERC-8004 reputation is write-accessible, but not to the agent's own
+  owner.** `giveFeedback` from the agent owner reverts with `Self-feedback not allowed`.
+  Verified by decoding the revert, not by guessing. Feedback must come from a
+  counterparty, so settlement writes reputation from a second account
+  (`CLIENT_ACCOUNT_INDEX`, account 0 of the same mnemonic on testnet). Confirmed working:
+  tx `0x42bb23e5...`, and `getSummary` now returns count 1, value 1.00.
+
+- `[RESOLVED]` The Phase 1 `getSummary` ABI was wrong in two ways: tags are `string`
+  not `bytes32`, and `count` is `uint64` not `uint256`. Every call reverted, and the
+  script mislabelled it "expected for a fresh agent" — it would have failed the same way
+  with a fully-reputed agent. Real signature:
+  `getSummary(uint256, address[], string, string) -> (uint64, int128, uint8)`.
+  It also rejects an empty `clientAddresses` array (`clientAddresses required`), so
+  `getClients(agentId)` must be called first.
 
 - `[RESOLVED]` USDC on Sepolia — there are TWO distinct USDC contracts and they are
   not interchangeable. ENS name registration requires the ENS-deployed token at
