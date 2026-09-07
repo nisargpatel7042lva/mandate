@@ -87,6 +87,9 @@ export function TradeLog({ trades }: TradeLogProps) {
           ))}
         </div>
       )}
+      <p className="border-t border-[var(--border)] px-4 py-2 text-[10px] text-[var(--text-3)]">
+        Example data · live trade log wires to Arc settlement events in Phase 5
+      </p>
     </div>
   )
 }
