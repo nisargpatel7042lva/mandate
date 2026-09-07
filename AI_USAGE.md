@@ -502,3 +502,34 @@ at "Permission Scope". All three failure modes demonstrate correctly once the su
 is configured.
 
 **Spec files used:** `/specs/phase8-ui.md`
+
+### 2026-09-07 | Both | Phase 9 (integration pass + bug bash)
+
+**Task:** Full end-to-end walk of every screen, all live data, triage every rough edge.
+No new features — verification only.
+
+**Claude Code was asked to:**
+- Hit all 5 routes (`/`, `/dashboard`, `/treasury`, `/execute`, `/transactions/blocked`)
+  and verify 200 responses.
+- Test all three Execute presets via `POST /api/check` and verify correct verdicts
+  (Uniswap $8k → authorized, GMX $5k → blocked at Protocol Allowlist, Curve $12k →
+  blocked at Position Size) with real subgraph data.
+- Audit every page for undisclosed fixture data — found TradeLog component was showing
+  example trades without any label visible to a judge.
+- Write `ISSUES.md` — full happy-path checklist plus triaged issues (fix before
+  submission vs known limitation).
+
+**AI-generated:** `ISSUES.md` (all content); one-line footer in `TradeLog.tsx`.
+
+**Human-directed / reviewed:** Decision to add `.env` and `.env.example` to `.gitignore`
+(user had just created `.env` with a real private key in the working directory).
+
+**Bugs found and fixed:**
+- TradeLog component had no in-card disclosure — example trades from Sept 4 with fake
+  tx hashes would look like real historical records to a judge. Fixed by adding a footer
+  line matching the disclosure pattern used elsewhere.
+
+**Verified live:** All three Execute presets produce correct verdicts with real Graph
+data. All 5 routes return 200. Latency 6–15ms per underwriting check.
+
+**Spec files used:** `/specs/phase9-integration.md`

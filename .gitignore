@@ -51,3 +51,6 @@ bun.lock
 # foundry build output
 /out
 /cache
+
+.env
+.env.example
