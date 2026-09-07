@@ -181,14 +181,16 @@ start to finish, with no manual data seeding via a script that wouldn't exist in
 
 ## Phase 10 — Documentation (Sept 11–12) 🔵 NISARG LEADS, YOU FILL TECHNICAL SECTIONS
 
-- [ ] Replace the default `create-next-app` README (still untouched as of Sept 5)
-- [ ] Technical sections: architecture diagram, setup instructions a judge can actually follow
-- [ ] Explicit prior-art section naming **ERC-8004** and **AgentScope**, stating what
+- [x] README written — problem, prior art, architecture, live addresses, runnable
+      commands, per-sponsor sections, honest limitations. Every link and the curl
+      example verified against the live deployment.
+- [x] Architecture diagram + setup a judge can follow, no wallet needed for the MCP path
+- [x] Prior-art section names ERC-8004 and AgentScope and states what Mandate adds — what
       Mandate adds on top
-- [ ] Every claim checked against what actually works — not what was planned
+- [x] Every claim checked against live state; 1inch explicitly marked not submitted
 - [ ] Final completeness pass on AI_USAGE.md (should already be mostly populated)
 - [ ] Confirm `/specs` contains the build plan + every phase prompt actually used
-- [ ] Per-sponsor submission paragraphs: Graph, Arc, ENS (+ 1inch if it shipped)
+- [x] Per-sponsor sections for ENS, Graph and Arc written from verified work
 
 ---
 
