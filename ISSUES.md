@@ -20,6 +20,12 @@ is on Sepolia, and verifies the connected account is the contract's relayer befo
 writing. Revocation is authorised by the key holder rather than by a server acting for
 them, which is also the more honest demo of the product's own thesis.
 
+It fired a second time minutes later while polling for the fix to deploy — the old
+build was still serving, so the poll itself revoked again (tx set expiry to 1 at block
+11654585, restored by `0x6d6604ce...`). Two lessons recorded: never probe a
+state-changing endpoint with the method that changes state, and a destructive endpoint
+should never be reachable without authentication in the first place.
+
 **Status: FIXED**
 
 
