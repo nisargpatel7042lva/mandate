@@ -120,6 +120,18 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   McpServer and transport. Simpler than session management for a demo, at the cost
   of per-request setup.
 
+## Phase 5 — verified end to end 2026-09-07
+
+- `[VERIFIED]` Full loop ran live: propose -> underwrite -> settle on Arc -> reputation
+  write-back. Two settlements confirmed on Arc testnet:
+  `0x67b798d6...` (0.25 USDC, block 60934278) and `0xfdefb2eb...` (0.1 USDC, block
+  60934365). Balances moved as expected — agent 20 -> 19.749475 -> 19.649, recipient
+  0 -> 0.25 -> 0.35. Reputation feedback count went 0 -> 1 -> 2 -> 3 on Sepolia.
+
+- `[VERIFIED]` Settlement is gated on the decision, not logged beside it. `curve 12000`
+  (over the position limit) and `gmx-perp 5000` (not allowlisted) both stop before any
+  transfer.
+
 ## Deployment
 
 - `[VERIFIED]` MCP server is public at `https://mandate-rho.vercel.app/api/mcp`,

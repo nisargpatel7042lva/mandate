@@ -110,21 +110,21 @@ real question about agent 10099, sourced from live Subgraph Studio data.
 
 ---
 
-## Phase 5 — Arc/Circle settlement + reputation write-back (Sept 7–9) 🟠
+## Phase 5 — Arc settlement + reputation write-back ✅ COMPLETE (verified live 2026-09-07)
 
 Highest count of unverified externals — budget discovery time, not just coding time.
 
-- [ ] Resolve `UNVERIFIED`: Arc Agent Stack testnet endpoint URL
-- [ ] Resolve `UNVERIFIED`: Arc SDK method signatures — **read `github.com/circlefin/agent-stack-starter-kits` source** before assuming any API shape
-- [ ] Resolve `UNVERIFIED`: which USDC contract Arc settlement uses on testnet
-- [ ] Give the test agent a Circle wallet on Arc testnet
-- [ ] Build the funding/settlement flow: an approved action → **real USDC transfer** on Arc testnet
-- [ ] Confirm the tx hash is real and visible on Arc's block explorer (not a logged simulated success)
-- [ ] Make the decision traceable: settlement record references *which* trust score and *which* permission check passed
-- [ ] Write outcome back to our own subgraph
-- [ ] **Verify** whether ERC-8004 Reputation Registry is write-accessible to us — do not assume; write back if it is
-- [ ] Run one full manual loop: propose → check passes → Arc settles → reputation updates → re-query MCP shows updated history
-- [ ] Expose a funding flow for Nisarg's Phase 6 if feasible — tell him what actually exists
+- [x] Arc testnet: chain 5042002, RPC rpc.testnet.arc.network, explorer testnet.arcscan.app
+- [x] Read the starter kits: Base/Polygon only, `circle` CLI + x402 — not an Arc SDK. Built directly on Arc with viem.
+- [x] None — Arc's native currency IS USDC (18 decimals), so settlement is a value transfer on testnet
+- [x] Agent funded on Arc via faucet.circle.com (20 USDC)
+- [x] `npm run settle` — approved action moves real USDC on Arc
+- [x] tx `0x67b798d6...` block 60934278, `0xfdefb2eb...` block 60934365 — read back from chain
+- [x] Settlement record carries trust score, each check passed, and the ENS record the scope came from
+- [ ] Write outcome to our own subgraph — not done; the subgraph indexes PermissionMirror events only
+- [x] Verified: writable, but self-feedback is rejected. Written from a counterparty account.
+- [x] Full loop ran twice; reputation count 0 -> 3, confirmed by `npm run read:identity`
+- [ ] Tell Nisarg settlements now exist — his treasury page can show real Arc transactions
 
 **Definition of done:** one complete, real, live-testnet cycle with every step's on-chain
 evidence (tx hashes, explorer links) captured in the phase report.

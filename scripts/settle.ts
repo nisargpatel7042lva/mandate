@@ -145,10 +145,21 @@ async function main() {
       erc8004Score: decision.erc8004Score,
       mandateHistoryScore: decision.mandateHistoryScore,
       protocol,
+      // Limits are stored with 6 decimals; render them in USDC so the record
+      // reads as money rather than as raw integers next to a decimal amount.
       checksPassed: [
         `trustScore ${decision.trustScore} >= ${TRUST_THRESHOLD}`,
         `protocol ${protocol} in allowlist (bitmask ${decision.allowedProtocols})`,
-        `amount ${tradeUsdc} <= max position ${decision.maxPositionSizeUsdc}`,
+        `amount ${tradeUsdc} USDC <= max position ${
+          decision.maxPositionSizeUsdc !== null
+            ? formatUnits(decision.maxPositionSizeUsdc, 6)
+            : 'n/a'
+        } USDC`,
+        `daily cap ${
+          decision.maxDailySpendUsdc !== null
+            ? formatUnits(decision.maxDailySpendUsdc, 6)
+            : 'n/a'
+        } USDC not exceeded`,
         `scope valid until ${decision.scopeExpiry ? new Date(decision.scopeExpiry * 1000).toISOString() : 'n/a'}`,
       ],
       scopeSource: `ENSv2 mandate.permissions on ${ENS_NAME}`,
