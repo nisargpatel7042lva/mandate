@@ -132,6 +132,30 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   (over the position limit) and `gmx-perp 5000` (not allowlisted) both stop before any
   transfer.
 
+## Onboarding
+
+- `[VERIFIED]` `npm run onboard -- <label> [maxPosition] [maxDaily] [protocols]` takes an
+  agent from nothing to enforceable in one command: fund gas, register ERC-8004 identity,
+  create the ENSv2 subname, deploy its dedicated resolver, publish the scope, and mirror
+  it for synchronous enforcement. Proven by onboarding a second agent,
+  `alpha.mandate.eth` (agentId 10132, wallet `0x75Ff63F2...`, resolver `0xcacef82b...`)
+  with deliberately different limits.
+
+- `[VERIFIED]` Per-agent scope is genuinely enforced, not global. alpha allows
+  uniswap-v3 + curve up to $5,000; testagent allows those plus aave-v3 up to $10,000.
+  Against alpha: `uniswap-v3 3000` authorised, `uniswap-v3 8000` denied on the position
+  limit, `aave-v3 1000` denied on the allowlist (bitmask 3, not 7).
+
+- `[NOTE]` `getSubregistry()` on the .eth registry returns zero for `mandate.eth` even
+  though its subregistry exists at `0x907779ea...` and holds both subnames — the
+  `setSubregistry` call in create-subname.ts appears not to have taken effect. It does
+  not block anything: children are registered on the subregistry contract directly, which
+  is what governs them. Onboarding reads `ENS_SUBREGISTRY_ADDRESS` from config and only
+  falls back to the on-chain lookup.
+
+- `[NOTE]` Re-running onboarding mints a fresh agentId each time; it is not idempotent.
+  A failed run leaves an orphaned identity (10131 was minted before a later step failed).
+
 ## Deployment
 
 - `[VERIFIED]` MCP server is public at `https://mandate-rho.vercel.app/api/mcp`,

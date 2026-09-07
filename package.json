@@ -20,7 +20,8 @@
     "deploy:mirror": "tsx scripts/deploy-permission-mirror.ts",
     "underwrite": "tsx scripts/underwrite.ts",
     "mcp": "tsx mcp/server.ts",
-    "settle": "tsx scripts/settle.ts"
+    "settle": "tsx scripts/settle.ts",
+    "onboard": "tsx scripts/onboard.ts"
   },
   "dependencies": {
     "@ensdomains/ensjs": "^5.0.0-sepolia-fix.1",
