@@ -146,15 +146,26 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   Against alpha: `uniswap-v3 3000` authorised, `uniswap-v3 8000` denied on the position
   limit, `aave-v3 1000` denied on the allowlist (bitmask 3, not 7).
 
-- `[NOTE]` `getSubregistry()` on the .eth registry returns zero for `mandate.eth` even
-  though its subregistry exists at `0x907779ea...` and holds both subnames — the
-  `setSubregistry` call in create-subname.ts appears not to have taken effect. It does
-  not block anything: children are registered on the subregistry contract directly, which
-  is what governs them. Onboarding reads `ENS_SUBREGISTRY_ADDRESS` from config and only
-  falls back to the on-chain lookup.
+- `[RESOLVED]` `getSubregistry()` reading zero was our bug, not a chain one. The getter
+  takes a **label string** — `getSubregistry(string label)` — while the setter takes a
+  **tokenId** — `setSubregistry(uint256 anyId, address registry)`. We passed a tokenId to
+  the getter, which returns a silent zero rather than erroring. `getSubregistry('mandate')`
+  returns `0x907779Ea...` correctly. The original `setSubregistry` had worked all along:
+  its receipt is status 1 and emits `SubregistryUpdated(tokenId, 0x907779Ea..., sender)`.
+  Onboarding now resolves the subregistry on-chain with no config crutch.
 
 - `[NOTE]` Re-running onboarding mints a fresh agentId each time; it is not idempotent.
   A failed run leaves an orphaned identity (10131 was minted before a later step failed).
+
+- `[RESOLVED]` Onboarding derived every agent's wallet from a fixed account index, so two
+  agents shared an address and the second silently overwrote the first's mandate in
+  PermissionMirror — which keys scope by agent address. Caught when `beta` took over
+  `alpha`'s scope. The index is now derived from the label, so each name gets its own
+  stable wallet, with indices 0 and 2 reserved for the counterparty and treasury.
+
+- `[RESOLVED]` No script checked `receipt.status`. `waitForTransactionReceipt` resolves
+  for reverted transactions too, so a reverted write looked successful and surfaced later
+  as a wrong read. Added `waitForSuccess()` in `scripts/lib/client.ts`.
 
 ## Deployment
 

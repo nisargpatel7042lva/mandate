@@ -69,9 +69,25 @@ const positionTypes = ['spot', 'lp']
 
 const PARENT_LABEL = optionalEnv('ENS_PARENT_LABEL', 'mandate')
 const FULL_NAME = `${label}.${PARENT_LABEL}.eth`
-/** Which mnemonic account this agent gets. Each agent needs its own address:
- *  PermissionMirror keys scope by agent address, so sharing one would collide. */
-const AGENT_INDEX = Number(optionalEnv('ONBOARD_ACCOUNT_INDEX', '1'))
+/**
+ * Which mnemonic account this agent gets.
+ *
+ * PermissionMirror keys scope by agent address, so two agents sharing a wallet
+ * silently overwrite each other's mandate — the second onboarding wins and the
+ * first agent's limits quietly become the second's. Derive the index from the
+ * label so each name gets its own stable address. Indices 0 and 2 are reserved
+ * for the settlement counterparty and the treasury.
+ */
+const RESERVED_INDICES = new Set([0, 2])
+function indexForLabel(name: string): number {
+  const explicit = optionalEnv('ONBOARD_ACCOUNT_INDEX', '')
+  if (explicit) return Number(explicit)
+  // Deterministic, so re-onboarding the same label reuses its wallet.
+  let idx = (Number(BigInt(keccak256(stringToBytes(name))) % 90n) + 5) | 0
+  while (RESERVED_INDICES.has(idx)) idx += 1
+  return idx
+}
+const AGENT_INDEX = indexForLabel(label)
 const MIRROR = requireEnv('PERMISSION_MIRROR_ADDRESS') as Address
 
 const DEFAULT_ROLE_BITMAP = BigInt(
@@ -166,19 +182,19 @@ async function main() {
 
   // ── 3. ENSv2 subname ─────────────────────────────────────────────────────
   console.log('\n─── 3/6  CREATE ENSv2 SUBNAME ───')
-  // The parent's subregistry is addressed directly. getSubregistry() on the .eth
-  // registry reads zero for mandate.eth even though the subregistry exists and
-  // holds testagent.mandate.eth, so the on-chain lookup is only a fallback —
-  // see ASSUMPTIONS.md. Children are registered on the subregistry contract
-  // itself, which is what actually governs them.
-  let subregistry = optionalEnv('ENS_SUBREGISTRY_ADDRESS', '') as Address
-  if (!subregistry) {
-    subregistry = await readContract<Address>(publicClient, {
-      address: ENS_ETH_REGISTRY_SEPOLIA,
-      abi: permissionedRegistryGetSubregistrySnippet,
-      functionName: 'getSubregistry',
-      args: [tokenIdFor(PARENT_LABEL)],
-    })
+  // getSubregistry takes the LABEL, not a tokenId — the setter takes a tokenId,
+  // which is an easy mismatch to make and returns a silent zero rather than an
+  // error. Resolved on-chain so onboarding works for any parent name we own,
+  // with config only as an override.
+  let subregistry = await readContract<Address>(publicClient, {
+    address: ENS_ETH_REGISTRY_SEPOLIA,
+    abi: permissionedRegistryGetSubregistrySnippet,
+    functionName: 'getSubregistry',
+    args: [PARENT_LABEL],
+  }).catch(() => zeroAddress as Address)
+
+  if (subregistry === zeroAddress) {
+    subregistry = optionalEnv('ENS_SUBREGISTRY_ADDRESS', '') as Address
   }
   console.log('  parent subregistry:', subregistry)
   if (!subregistry || subregistry === zeroAddress) {

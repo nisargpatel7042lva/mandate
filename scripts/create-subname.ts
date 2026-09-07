@@ -80,11 +80,14 @@ async function main() {
   // ── Does the parent already have a subregistry? ──────────────────────────
   let subregistry = zeroAddress as Address
   try {
+    // getSubregistry takes the label; setSubregistry takes a tokenId. Passing a
+    // tokenId here returns zero instead of erroring, which made an existing
+    // subregistry look absent and would have deployed a second one.
     subregistry = await readContract<Address>(publicClient, {
       address: ENS_ETH_REGISTRY_SEPOLIA,
       abi: permissionedRegistryGetSubregistrySnippet,
       functionName: 'getSubregistry',
-      args: [parentTokenId],
+      args: [PARENT_LABEL],
     })
   } catch {
     console.log('(getSubregistry read failed — assuming none)')

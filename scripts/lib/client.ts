@@ -63,3 +63,19 @@ export interface SendTxParams {
 export function sendTransaction(client: any, params: SendTxParams): Promise<Hash> {
   return client.sendTransaction(params) as Promise<Hash>
 }
+
+/**
+ * Wait for a receipt and throw if the transaction reverted.
+ *
+ * waitForTransactionReceipt resolves for reverted transactions too — it only
+ * reports that the receipt exists. Without this check a reverted write looks
+ * like a successful one, and the failure surfaces much later as a wrong read.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function waitForSuccess(client: any, hash: Hash, label = 'transaction') {
+  const receipt = await client.waitForTransactionReceipt({ hash })
+  if (receipt.status !== 'success') {
+    throw new Error(`${label} reverted (tx ${hash}, block ${receipt.blockNumber})`)
+  }
+  return receipt
+}
