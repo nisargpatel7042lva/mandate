@@ -63,7 +63,7 @@ functional demo, no hard-coded values.**
 
 ---
 
-## Phase 3 — Composed Graph data layer 🟡 PARTIALLY BUILT — re-baselined 2026-09-05
+## Phase 3 — Composed Graph data layer ✅ COMPLETE (verified live 2026-09-06)
 
 Code landed in commit `609b831` (not written in this session). Reviewed below against
 the phase's own definition of done. **Nothing here is verified running yet.**
