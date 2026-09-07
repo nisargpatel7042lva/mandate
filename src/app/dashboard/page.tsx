@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Kill switch */}
-        <KillSwitch />
+        <KillSwitch agentAddress={LIVE_AGENT.address} />
 
         {/* Daily spend meter */}
         <Card>

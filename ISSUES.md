@@ -6,6 +6,23 @@ Triaged during the full end-to-end walk. Format: description → status → tria
 
 ## Fix Before Submission
 
+### I-002 — /api/revoke could kill the agent from anywhere, unauthenticated
+The kill switch POSTed to `/api/revoke`, which signed `PermissionMirror.sync()` with a
+server-held `PRIVATE_KEY`. The route took no body, no token and no auth, so once the key
+was set in Vercel any `curl -X POST https://mandate-rho.vercel.app/api/revoke` revoked the
+agent's authority on-chain. This was demonstrated accidentally on 2026-09-07: tx
+`0x5a5dabed...` set expiry to 1 and `isAuthorized()` went false. Restored by re-running
+the relayer (tx `0xc0fa23c5...`).
+
+**Fix applied:** Removed the route entirely — the app no longer holds or uses a signing
+key anywhere. The kill switch now signs in the owner's own wallet via EIP-1193, checks it
+is on Sepolia, and verifies the connected account is the contract's relayer before
+writing. Revocation is authorised by the key holder rather than by a server acting for
+them, which is also the more honest demo of the product's own thesis.
+
+**Status: FIXED**
+
+
 ### I-001 — TradeLog table had no fixture disclosure
 The "Trade Decisions" card on `/dashboard` showed 6 example trades from Sept 4 with
 fake tx hashes and no in-card label. A judge would read them as real historical records.
