@@ -1,358 +1,133 @@
-// Screen D: Treasury — Phase 6 (Sept 8–9), updated Phase 9 (settlements live)
-// Live: Arc testnet USDC balance (via viem getBalance, native currency on Arc).
-// Live: authorization trail from the Mandate subgraph (PermissionUpdate tx hashes on Sepolia).
-// Live: Arc settlement history via ArcScan txlist API (Phase 5 complete, real USDC transfers).
+// Treasury — the Arc wallet, what has moved, and the Sepolia authorisations that let it.
 
-import { getArcBalance, getArcSettlements, arcExplorerTx, arcExplorerAddr } from '@/lib/arc-data'
+import { getArcBalance, getArcSettlements } from '@/lib/arc-data'
 import { getAgentLiveData, LIVE_AGENT } from '@/lib/server-data'
 import { fetchRecentUpdates, type MandatePermissionUpdate } from '@/lib/mandate-subgraph'
-import { fmtUsdc, fmtExpiry, shortAddr } from '@/lib/example-data'
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-
-const PROTOCOL_LABELS: Record<string, string> = {
-  'uniswap-v3': 'Uniswap v3',
-  'curve': 'Curve',
-  'aave-v3': 'Aave v3',
-  '1inch': '1inch',
-  'gmx-perp': 'GMX Perps',
-  'compound-v3': 'Compound v3',
-}
-
-function BalanceRing({ value, max, color }: { value: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  const r = 40
-  const circ = 2 * Math.PI * r
-  const dash = (pct / 100) * circ
-  return (
-    <svg width="100" height="100" className="-rotate-90">
-      <circle cx="50" cy="50" r={r} fill="none" stroke="var(--surface-3)" strokeWidth="8" />
-      <circle
-        cx="50" cy="50" r={r} fill="none"
-        stroke={color} strokeWidth="8"
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function fmtBlock(n: number): string {
-  return n.toLocaleString('en-US')
-}
-
-function fmtTs(unixSecs: number): string {
-  return new Date(unixSecs * 1000).toLocaleString('en-US', {
-    month: 'short', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  })
-}
-
-function sepoliaExplorerTx(hash: string): string {
-  return `https://sepolia.etherscan.io/tx/${hash}`
-}
+import { usd, untilExpiry, fmtTs, EXPLORER, shortAddr, protocolLabel } from '@/lib/format'
+import { Panel, PanelHead, Stat } from '@/components/ui/Panel'
+import { Chip } from '@/components/ui/Chip'
+import { Gauge } from '@/components/ui/Gauge'
+import { TxLink } from '@/components/ui/TxLink'
+import { CountUp } from '@/components/ui/CountUp'
+import { BalancePulse } from '@/components/live/BalancePulse'
 
 export default async function TreasuryPage() {
-  const [arcData, agentData, updates, settlementsData] = await Promise.all([
+  const [arc, agent, updates, settlementsData] = await Promise.all([
     getArcBalance(LIVE_AGENT.address),
     getAgentLiveData(),
     fetchRecentUpdates(LIVE_AGENT.address).catch((): MandatePermissionUpdate[] => []),
     getArcSettlements(LIVE_AGENT.address),
   ])
-
-  const dailyLimit = agentData.maxDailySpendUsdc ?? 50_000
-  const expiry = agentData.scopeExpiry ? fmtExpiry(agentData.scopeExpiry) : '—'
-
-  const allLive = !arcData.fetchError && !agentData.fetchError
+  const daily = agent.maxDailySpendUsdc ?? 0
+  const exp = untilExpiry(agent.scopeExpiry)
+  const settlements = settlementsData.settlements
+  const ok = settlements.filter(s => s.success)
+  const total = ok.reduce((a, s) => a + s.amountUsdc, 0)
+  const avg = ok.length ? total / ok.length : 0
+  const covers = avg > 0 ? Math.floor(arc.balanceUsdc / avg) : null // settlements the balance could fund at the observed average
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Data source notice */}
-      {arcData.fetchError && agentData.fetchError ? (
-        <div className="rounded border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
-          Arc RPC error: {arcData.fetchError} · Subgraph error: {agentData.fetchError}
+    <div className="flex flex-col gap-5">
+      <div className="reveal flex flex-wrap items-end justify-between gap-3" style={{ ['--i' as string]: 0 }}>
+        <div>
+          <div className="eyebrow">Treasury</div>
+          <h1 className="display mt-1 text-[34px] leading-none sm:text-[40px]">Native USDC on Arc. <em className="text-chain">No approvals, no wrappers.</em></h1>
         </div>
-      ) : arcData.fetchError ? (
-        <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-          Arc RPC unavailable: {arcData.fetchError} · Balance shown as zero
+        <div className="flex items-center gap-2 text-[12px]">
+          {arc.fetchError ? <Chip tone="deny" dot>Arc RPC error</Chip> : <Chip tone="chain" live>Arc · block {arc.blockNumber.toLocaleString()}</Chip>}
+          <a href={EXPLORER.arcAddr(LIVE_AGENT.address)} target="_blank" rel="noopener noreferrer" className="font-mono text-text-3 hover:text-chain">{shortAddr(LIVE_AGENT.address)} ↗</a>
         </div>
-      ) : agentData.fetchError ? (
-        <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-          Subgraph unavailable: {agentData.fetchError} · Balance data is live
-        </div>
-      ) : (
-        <div className="rounded border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">
-          Live · Arc testnet block {fmtBlock(arcData.blockNumber)} · USDC balance via{' '}
-          <a
-            href={arcExplorerAddr(LIVE_AGENT.address)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-emerald-300"
-          >
-            ArcScan
-          </a>{' '}
-          · {updates.length > 0 ? `${updates.length} authorization event${updates.length !== 1 ? 's' : ''} indexed` : 'Mandate subgraph syncing'}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-[var(--text)]">Treasury</h1>
-        <span className="font-mono text-xs text-[var(--text-3)]">{LIVE_AGENT.ensName}</span>
       </div>
 
-      {/* Balance overview */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* Arc wallet balance */}
-        <Card>
-          <CardBody className="flex items-center gap-4">
-            <div className="relative">
-              <BalanceRing value={arcData.balanceUsdc} max={Math.max(arcData.balanceUsdc, dailyLimit)} color="#22c55e" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-[var(--text-3)]">USDC</span>
-                <span className="font-mono text-xs font-semibold text-[var(--text)]">
-                  {arcData.balanceUsdc > 0
-                    ? `${Math.round((arcData.balanceUsdc / Math.max(arcData.balanceUsdc, dailyLimit)) * 100)}%`
-                    : '0%'}
-                </span>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Arc Wallet</p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-[var(--text)]">
-                {fmtUsdc(arcData.balanceUsdc)}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">
-                {arcData.fetchError ? 'RPC error' : `block ${fmtBlock(arcData.blockNumber)}`}
-              </p>
-              {allLive && arcData.balanceUsdc === 0 && (
-                <p className="mt-1 text-[10px] text-amber-400/70">
-                  Fund via Phase 5 Circle deposit
-                </p>
-              )}
-            </div>
-          </CardBody>
-        </Card>
+      {/* Balance hero */}
+      <section className="grid gap-4 lg:grid-cols-12">
+        <Panel className="reveal ticks relative overflow-hidden p-6 lg:col-span-7" style={{ ['--i' as string]: 1 }}>
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-chain/10 blur-3xl" />
+          <div className="eyebrow">Agent wallet · Arc testnet</div>
+          <div className="num mt-3 text-[64px] font-bold leading-none tracking-tight text-text sm:text-[80px]">
+            <span className="text-text-3">$</span><CountUp value={arc.balanceUsdc} decimals={2} duration={1400} startFrom={0} />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-text-3">
+            <span>USDC is Arc&apos;s gas token, so this is <span className="text-text-2">eth_getBalance</span>, not an ERC-20</span>
+            <BalancePulse initialBlock={arc.blockNumber} />
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-4 border-t border-line pt-4">
+            <Stat label="Settled · all time" value={usd(total, { cents: true })} sub={`${ok.length} transfer${ok.length === 1 ? '' : 's'}`} tone="allow" />
+            <Stat label="Daily cap" value={usd(daily, { cents: false })} sub={`scope valid ${exp.label}`} tone="seal" />
+            <Stat label="Balance covers" value={covers === null ? '—' : `${covers.toLocaleString('en-US')}×`} sub={avg > 0 ? `settlements at avg ${usd(avg, { cents: true })}` : 'no settlements yet'} tone="chain" />
+          </div>
+        </Panel>
 
-        {/* Daily scope */}
-        <Card>
-          <CardBody className="flex items-center gap-4">
-            <div className="relative">
-              <BalanceRing value={0} max={dailyLimit} color="#0ea5e9" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-[var(--text-3)]">today</span>
-                <span className="font-mono text-xs font-semibold text-[var(--text)]">0%</span>
-              </div>
-            </div>
+        <div className="reveal flex flex-col gap-3 lg:col-span-5" style={{ ['--i' as string]: 2 }}>
+          <Panel className="flex items-center gap-4 p-4" hover>
+            <Gauge pct={daily > 0 ? Math.min(100, (arc.balanceUsdc / daily) * 100) : 0} size={84} stroke={7} tone="chain"
+              label={<span className="num text-[13px] font-bold">{daily > 0 ? `${Math.min(100, (arc.balanceUsdc / daily) * 100).toFixed(2)}%` : '—'}</span>} />
             <div>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Daily Scope</p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-[var(--text)]">
-                {agentData.maxDailySpendUsdc !== null ? fmtUsdc(agentData.maxDailySpendUsdc) : '—'}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">limit · expires {expiry}</p>
+              <div className="eyebrow">Balance vs daily cap</div>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-text-2">The wallet holds a fraction of one day&apos;s ceiling. The cap is the guardrail, the balance is the blast radius.</p>
             </div>
-          </CardBody>
-        </Card>
+          </Panel>
+          <Panel className="p-4" hover>
+            <div className="flex items-center justify-between"><div className="eyebrow">Authorisations on Sepolia</div><span className="num text-lg font-semibold text-text">{agent.syncCount ?? '—'}</span></div>
+            <div className="mt-2 flex flex-wrap gap-1.5">{agent.allowedProtocols.map(p => <Chip key={p} tone="allow">{protocolLabel(p)}</Chip>)}</div>
+            <p className="mt-2 text-[11px] text-text-3">Each sync is a PermissionSynced event written by the relayer from the ENS record.</p>
+          </Panel>
+          <Panel className="p-4" hover>
+            <div className="eyebrow">Fund</div>
+            <p className="mt-1 text-[12.5px] text-text-2">Top up from <a className="text-chain hover:underline" href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">faucet.circle.com</a>. Settlements draw from this address only.</p>
+            <a href={EXPLORER.arcAddr(LIVE_AGENT.address)} target="_blank" rel="noopener noreferrer" className="mt-2 block truncate rounded-md border border-line bg-bg-2 px-2.5 py-1.5 font-mono text-[11px] text-text-2 hover:text-chain">{LIVE_AGENT.address}</a>
+          </Panel>
+        </div>
+      </section>
 
-        {/* Authorization events */}
-        <Card>
-          <CardBody className="flex flex-col justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Authorizations</p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-[var(--text)]">
-                {agentData.syncCount ?? '—'}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">
-                permission sync{agentData.syncCount !== 1 ? 's' : ''} on Sepolia
-              </p>
-            </div>
-            {agentData.allowedProtocols.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {agentData.allowedProtocols.map(p => (
-                  <Badge key={p} variant="success">{PROTOCOL_LABELS[p] ?? p}</Badge>
-                ))}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Authorization trail — real Mandate subgraph PermissionUpdate events */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Authorization Trail</CardTitle>
-          <span className="text-xs text-[var(--text-3)]">
-            PermissionSynced events · Mandate subgraph · Sepolia
-          </span>
-        </CardHeader>
-        <CardBody>
-          {updates.length === 0 ? (
-            <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-3 text-xs text-amber-400">
-              {agentData.fetchError
-                ? 'Subgraph unavailable — set NEXT_PUBLIC_MANDATE_SUBGRAPH_URL to load'
-                : 'No authorization events indexed yet'}
-            </div>
+      <section className="grid gap-4 lg:grid-cols-12">
+        {/* Settlements */}
+        <Panel className="reveal overflow-hidden lg:col-span-7" style={{ ['--i' as string]: 3 }}>
+          <PanelHead title="Settlement history" right={<span>ArcScan txlist · outbound from agent</span>} />
+          {settlementsData.fetchError && <div className="m-3 rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-[12px] text-warn">ArcScan unavailable: {settlementsData.fetchError}</div>}
+          {settlements.length === 0 ? (
+            <div className="px-4 py-10 text-center text-[13px] text-text-3">No settlements yet. Outbound USDC appears here within a block.</div>
           ) : (
-            <ol className="flex flex-col gap-0">
-              {updates.map((u, i) => {
-                const ts = parseInt(u.blockTimestamp, 10)
-                const txHex = u.transactionHash.startsWith('0x')
-                  ? u.transactionHash
-                  : `0x${u.transactionHash}`
-                return (
-                  <li key={u.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-400">
-                        ✓
-                      </div>
-                      {i < updates.length - 1 && (
-                        <div className="my-1 w-px flex-1 bg-[var(--border)]" />
-                      )}
-                    </div>
-                    <div className="pb-4">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-[var(--text)]">
-                          Permission Sync #{updates.length - i}
-                        </p>
-                        <Badge variant="success">authorized</Badge>
-                      </div>
-                      <p className="mt-0.5 font-mono text-xs text-[var(--text-3)]">
-                        Block {parseInt(u.blockNumber, 10).toLocaleString()} · {ts ? fmtTs(ts) : '—'}
-                      </p>
-                      <a
-                        href={sepoliaExplorerTx(txHex)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-0.5 font-mono text-[10px] text-[var(--text-3)] underline hover:text-[var(--text-2)]"
-                      >
-                        {shortAddr(txHex)} ↗
-                      </a>
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
+            <table className="w-full text-[12.5px]">
+              <thead><tr className="eyebrow border-b border-line text-left"><th className="px-4 py-2 font-semibold">When</th><th className="px-2 py-2 font-semibold">To</th><th className="px-2 py-2 text-right font-semibold">Amount</th><th className="px-4 py-2 text-right font-semibold">Tx</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {settlements.map((s, i) => (
+                  <tr key={s.txHash} className="group transition hover:bg-surface-2/60 reveal" style={{ ['--i' as string]: i + 3 }}>
+                    <td className="px-4 py-2.5"><div className="text-text">{fmtTs(s.timestamp)}</div><div className="font-mono text-[10.5px] text-text-3">block {s.blockNumber.toLocaleString()}</div></td>
+                    <td className="px-2 py-2.5 font-mono text-[11px] text-text-2">{shortAddr(s.to)}</td>
+                    <td className={`num px-2 py-2.5 text-right font-semibold ${s.success ? 'text-allow' : 'text-deny'}`}>{s.success ? '−' : ''}{usd(s.amountUsdc, { cents: true })}</td>
+                    <td className="px-4 py-2.5 text-right"><Chip tone={s.success ? 'allow' : 'deny'} dot className="mr-2">{s.success ? 'settled' : 'failed'}</Chip><TxLink hash={s.txHash} chain="arc" head={6} tail={4} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-        </CardBody>
-      </Card>
+        </Panel>
 
-      {/* Arc settlement history — live from ArcScan txlist API */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Arc Settlement History</CardTitle>
-          <Badge variant={settlementsData.settlements.length > 0 ? 'success' : 'neutral'}>
-            {settlementsData.settlements.length > 0
-              ? `${settlementsData.settlements.length} settlement${settlementsData.settlements.length !== 1 ? 's' : ''} · live`
-              : 'Arc testnet · USDC'}
-          </Badge>
-        </CardHeader>
-
-        {settlementsData.fetchError && (
-          <div className="mx-4 mb-2 rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-            ArcScan unavailable: {settlementsData.fetchError}
+        {/* Authorisation trail */}
+        <Panel className="reveal overflow-hidden lg:col-span-5" style={{ ['--i' as string]: 4 }}>
+          <PanelHead title="Authorisation trail" right={<span>Mandate subgraph · Sepolia</span>} />
+          <div className="p-4">
+            {updates.length === 0 ? (
+              <div className="rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-[12px] text-warn">{agent.fetchError ? 'Subgraph unavailable' : 'No authorisation events indexed yet'}</div>
+            ) : (
+              <ol className="relative ml-2 border-l border-line pl-5">
+                {updates.map((u, i) => {
+                  const ts = parseInt(u.blockTimestamp, 10)
+                  return (
+                    <li key={u.id} className="relative pb-5 last:pb-0 reveal" style={{ ['--i' as string]: i + 4 }}>
+                      <span className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-bg ${i === 0 ? 'bg-seal shadow-[0_0_10px_var(--seal)]' : 'bg-line-2'}`} />
+                      <div className="flex items-center gap-2"><span className="text-[13px] font-semibold text-text">Permission sync #{updates.length - i}</span>{i === 0 && <Chip tone="seal">current</Chip>}</div>
+                      <div className="mt-0.5 font-mono text-[11px] text-text-3">block {parseInt(u.blockNumber, 10).toLocaleString()} · {ts ? fmtTs(ts, true) : '—'}</div>
+                      <TxLink hash={u.transactionHash} chain="sepolia" />
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
           </div>
-        )}
-
-        {/* Column headers */}
-        <div className="grid grid-cols-[1fr_100px_100px_130px] gap-4 border-b border-[var(--border)] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)]">
-          <span>Block · Time</span>
-          <span className="text-right">Amount</span>
-          <span className="text-center">Status</span>
-          <span>Explorer</span>
-        </div>
-
-        {settlementsData.settlements.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-3)]">
-              ⟳
-            </div>
-            <p className="text-sm font-medium text-[var(--text-2)]">No settlements yet</p>
-            <p className="text-xs text-[var(--text-3)]">
-              Arc USDC transfers from the agent wallet appear here in real time.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-[var(--border-subtle)]">
-            {settlementsData.settlements.map(s => {
-              const date = new Date(s.timestamp * 1000)
-              const dateStr = date.toLocaleString('en-US', {
-                month: 'short', day: '2-digit',
-                hour: '2-digit', minute: '2-digit',
-                hour12: false,
-              })
-              return (
-                <div
-                  key={s.txHash}
-                  className="grid grid-cols-[1fr_100px_100px_130px] gap-4 px-4 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-mono text-xs text-[var(--text)]">
-                      Block {s.blockNumber.toLocaleString()}
-                    </p>
-                    <p className="font-mono text-[10px] text-[var(--text-3)]">{dateStr}</p>
-                  </div>
-                  <p className="self-center text-right font-mono text-xs font-semibold text-emerald-400">
-                    {s.amountUsdc < 1
-                      ? `$${s.amountUsdc.toFixed(2)}`
-                      : `$${s.amountUsdc.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-                  </p>
-                  <div className="flex items-center justify-center">
-                    <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
-                      s.success
-                        ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
-                        : 'bg-red-500/10 text-red-400 ring-red-500/20'
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${s.success ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                      {s.success ? 'Settled' : 'Failed'}
-                    </span>
-                  </div>
-                  <a
-                    href={arcExplorerTx(s.txHash)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="self-center font-mono text-[10px] text-[var(--text-3)] underline hover:text-[var(--text-2)]"
-                  >
-                    {shortAddr(s.txHash)} ↗
-                  </a>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </Card>
-
-      {/* Agent Arc address */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Agent Arc Wallet</CardTitle>
-          <Badge variant="success">Arc testnet · funded</Badge>
-        </CardHeader>
-        <CardBody>
-          <p className="text-sm text-[var(--text-2)]">
-            Funded via{' '}
-            <a
-              href="https://faucet.circle.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-[var(--text)]"
-            >
-              faucet.circle.com
-            </a>
-            . Settlements are native USDC value transfers — no token contract, no approval.
-          </p>
-          <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-            <p className="text-xs text-[var(--text-3)]">Agent Arc address</p>
-            <a
-              href={arcExplorerAddr(LIVE_AGENT.address)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-0.5 block font-mono text-xs text-[var(--text-2)] underline hover:text-[var(--text)]"
-            >
-              {LIVE_AGENT.address}
-            </a>
-          </div>
-        </CardBody>
-      </Card>
+        </Panel>
+      </section>
     </div>
   )
 }
