@@ -66,8 +66,6 @@ body {
   overflow-x: hidden;
   position: relative;
 }
-body.lock-viewport { height: 100%; overflow: hidden; }
-@media (max-width: 900px) { body.lock-viewport { height: auto; overflow-y: auto; } }
 ::selection { background: rgba(255,255,255,.22); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
