@@ -1,4 +1,4 @@
-// Overview — the daily first screen. Live authority state, the perimeter map,
+// Console — the daily first screen. Live authority state, the perimeter map,
 // a one-click simulator, and the unified on-chain feed.
 
 import Link from 'next/link'
@@ -17,7 +17,7 @@ import { MapPanel } from '@/components/viz/MapPanel'
 
 const SCOPE_WINDOW_S = 30 * 86400 // relayer syncs a 30-day scope
 
-export default async function OverviewPage() {
+export default async function ConsolePage() {
   const [data, arc, settlementsData, updates] = await Promise.all([
     getAgentLiveData(),
     getArcBalance(LIVE_AGENT.address),
@@ -58,11 +58,11 @@ export default async function OverviewPage() {
         <div className="reveal flex flex-col justify-between lg:col-span-4" style={{ ['--i' as string]: 1 }}>
           <div>
             <div className="eyebrow">Authority state</div>
-            <h1 className="display mt-3 text-[42px] leading-[1.02] sm:text-[52px]">
-              {status === 'authorized' ? <>Cleared to trade,<br /><em className="text-seal text-glow-seal">within bounds.</em></>
-                : status === 'revoked' ? <>Authority<br /><em className="text-deny text-glow-deny">revoked.</em></>
-                : status === 'syncing' ? <>Waiting on<br /><em className="text-warn">the index.</em></>
-                : <>Live data<br /><em className="text-deny">unreachable.</em></>}
+            <h1 className="mt-3 text-[38px] font-medium leading-[1.05] tracking-[-0.045em] text-white sm:text-[46px]">
+              {status === 'authorized' ? <>Cleared to trade,<br /><em className="display text-text-2">within bounds.</em></>
+                : status === 'revoked' ? <>Authority<br /><em className="display text-deny">revoked.</em></>
+                : status === 'syncing' ? <>Waiting on<br /><em className="display text-warn">the index.</em></>
+                : <>Live data<br /><em className="display text-deny">unreachable.</em></>}
             </h1>
             <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-text-2">
               The mandate lives in an ENS record and a mirror contract the agent cannot edit.
@@ -77,7 +77,7 @@ export default async function OverviewPage() {
               <div className="flex items-center justify-between gap-6"><span className="text-text-3">Threshold</span><span className="num text-text">60</span></div>
               <div className="flex items-center justify-between gap-6"><span className="text-text-3">Mandate history</span><span className="num text-allow">{data.mandateHistoryScore}</span></div>
               <div className="flex items-center justify-between gap-6"><span className="text-text-3">ERC-8004</span><span className="num text-chain">{data.erc8004Score === null ? 'n/a · Sepolia' : data.erc8004Score.toFixed(0)}</span></div>
-              <div className="flex items-center justify-between gap-6"><span className="text-text-3">Scope expires</span><span className={`num ${exp.expired ? 'text-deny' : 'text-seal'}`}>{exp.label}</span></div>
+              <div className="flex items-center justify-between gap-6"><span className="text-text-3">Scope expires</span><span className={`num ${exp.expired ? 'text-deny' : 'text-white'}`}>{exp.label}</span></div>
             </div>
           </div>
         </div>
