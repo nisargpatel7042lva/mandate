@@ -6,11 +6,18 @@ import { useEffect, useState } from 'react'
 import { useLive } from '@/components/live/LiveProvider'
 import { useUi } from './UiProvider'
 
-const NAV = [
+const APP_NAV = [
   { href: '/console',   label: 'Console' },
   { href: '/execute',   label: 'Simulate' },
   { href: '/dashboard', label: 'Ledger' },
   { href: '/treasury',  label: 'Treasury' },
+]
+
+const LANDING_NAV = [
+  { href: '#how',   label: 'How it works' },
+  { href: '#proof', label: 'Live proof' },
+  { href: '#try',   label: 'Try it' },
+  { href: '#faq',   label: 'FAQ' },
 ]
 
 export function BrandMark({ size = 22, className = '' }: { size?: number; className?: string }) {
@@ -31,6 +38,7 @@ export function Header() {
   const { snap } = useLive()
   const { setPaletteOpen, setKillOpen } = useUi()
   const [open, setOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState<string | null>(null)
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', open)
@@ -39,11 +47,28 @@ export function Header() {
     return () => { window.removeEventListener('keydown', onKey); document.body.classList.remove('menu-open') }
   }, [open])
 
+  // Scroll-spy on the landing page so the nav shows where you are, not just where you can go.
+  useEffect(() => {
+    if (!landing) return
+    const els = LANDING_NAV.map(n => document.getElementById(n.href.slice(1))).filter((e): e is HTMLElement => !!e)
+    if (els.length === 0) return
+    const io = new IntersectionObserver(
+      entries => {
+        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+        if (visible[0]) setActiveSection(visible[0].target.id)
+      },
+      { rootMargin: '-42% 0px -50% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
+    )
+    els.forEach(e => io.observe(e))
+    return () => io.disconnect()
+  }, [landing])
+
   const authorized = snap?.agent.authorized ?? null
+  const nav = landing ? LANDING_NAV : APP_NAV
   const primary = pathname === '/execute' ? { href: '/console', label: 'Open console' } : { href: '/execute', label: 'Simulate' }
 
   return (
-    <header className={`relative z-50 grid grid-cols-[1fr_auto_1fr] items-center px-5 pb-2.5 pt-[18px] sm:px-10 sm:pt-[22px] ${landing ? '' : 'border-b border-line'}`}>
+    <header className={`sticky top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center bg-black/70 px-5 pb-2.5 pt-[18px] backdrop-blur-xl sm:px-10 sm:pt-[22px] ${landing ? '' : 'border-b border-line'}`}>
       <Link href="/" aria-label="Mandate" className="appear appear--scale inline-flex items-center gap-2.5 justify-self-start text-[15.5px] font-semibold tracking-[-0.03em] text-white" style={{ ['--d' as string]: '.08s' }}>
         <BrandMark />
         <span>Mandate<span className="font-normal text-text-2">.eth</span></span>
@@ -54,8 +79,8 @@ export function Header() {
       </Link>
 
       <nav aria-label="Primary" className={`justify-self-center items-center gap-2 ${open ? 'menu-open-nav flex' : 'hidden'} md:flex`}>
-        {NAV.map((n, i) => (
-          <Link key={n.href} href={n.href} data-active={pathname === n.href} className="pill-nav appear appear--scale" style={{ ['--d' as string]: `${0.16 + i * 0.12}s` }}>
+        {nav.map((n, i) => (
+          <Link key={n.href} href={n.href} data-active={landing ? activeSection === n.href.slice(1) : pathname === n.href} className="pill-nav appear appear--scale" style={{ ['--d' as string]: `${0.16 + i * 0.12}s` }}>
             {n.label}
           </Link>
         ))}
@@ -82,8 +107,8 @@ export function Header() {
 
       {open && (
         <div id="mobile-nav" className="fixed inset-0 z-40 flex flex-col items-stretch gap-3 bg-black/70 px-6 pb-8 pt-28 backdrop-blur-2xl md:hidden" onClick={() => setOpen(false)}>
-          <p className="eyebrow mb-2">Menu</p>
-          {NAV.map(n => <Link key={n.href} href={n.href} className="pill-nav !h-14 !justify-between !rounded-xl !text-[19px]">{n.label}<span className="text-text-3">›</span></Link>)}
+          <p className="eyebrow mb-2">{landing ? 'On this page' : 'Menu'}</p>
+          {nav.map(n => <Link key={n.href} href={n.href} className="pill-nav !h-14 !justify-between !rounded-xl !text-[19px]">{n.label}<span className="text-text-3">›</span></Link>)}
           <div className="mt-auto flex flex-col gap-2">
             <button onClick={() => { setOpen(false); setKillOpen(true) }} className="btn btn-deny btn-lg w-full">Kill switch</button>
             <Link href="/execute" className="btn btn-solid btn-lg w-full">Simulate</Link>
