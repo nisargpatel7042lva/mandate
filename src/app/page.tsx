@@ -1,295 +1,167 @@
-// Screen A: Agent Overview — wired to live on-chain data (Phase 4)
-// Live: trust score, permission scope, expiry — from composeRiskScore + Mandate subgraph
-// Fixture: recent trades — arrives in Phase 5 (Arc settlement)
+// Overview — the daily first screen. Live authority state, the perimeter map,
+// a one-click simulator, and the unified on-chain feed.
 
-import {
-  LIVE_AGENT,
-  getAgentLiveData,
-  type AgentLiveData,
-} from '@/lib/server-data'
-import { shortAddr, fmtUsdc, fmtExpiry } from '@/lib/example-data'
-import { getArcSettlements, arcExplorerTx } from '@/lib/arc-data'
-import { Card, CardBody, StatCard } from '@/components/ui/Card'
-import { Badge, TierBadge } from '@/components/ui/Badge'
+import Link from 'next/link'
+import { LIVE_AGENT, getAgentLiveData } from '@/lib/server-data'
+import { getArcBalance, getArcSettlements } from '@/lib/arc-data'
+import { fetchRecentUpdates } from '@/lib/mandate-subgraph'
+import type { LiveEvent } from '@/lib/live'
+import { untilExpiry, usd, protocolLabel, shortAddr, EXPLORER, nowSeconds } from '@/lib/format'
+import { Panel, PanelHead, Stat } from '@/components/ui/Panel'
+import { Chip } from '@/components/ui/Chip'
+import { Gauge } from '@/components/ui/Gauge'
+import { Ticker } from '@/components/live/Ticker'
+import { LiveFeed } from '@/components/live/LiveFeed'
+import { QuickSim } from '@/components/enforcement/QuickSim'
+import { MapPanel } from '@/components/viz/MapPanel'
 
-const PROTOCOL_LABELS: Record<string, string> = {
-  'uniswap-v3': 'Uniswap v3',
-  'curve':      'Curve',
-  'aave-v3':    'Aave v3',
-  '1inch':      '1inch',
-  'gmx-perp':   'GMX Perps',
-  'compound-v3': 'Compound v3',
-}
+const SCOPE_WINDOW_S = 30 * 86400 // relayer syncs a 30-day scope
 
-const TIER_RING: Record<string, string> = {
-  analytics:  'ring-1 ring-[var(--border)]',
-  monitoring: 'ring-2 ring-blue-500',
-  autonomous: 'ring-2 ring-orange-500',
-}
-
-function DataSourceBanner({ data }: { data: AgentLiveData }) {
-  if (data.fetchError) {
-    return (
-      <div className="rounded border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
-        Live data unavailable: {data.fetchError}
-      </div>
-    )
-  }
-  if (!data.scopeFound) {
-    return (
-      <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-        Subgraph syncing — permission scope not yet indexed. Re-check after the next PermissionSynced event.
-      </div>
-    )
-  }
-  return (
-    <div className="rounded border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">
-      Live data · ENS {LIVE_AGENT.ensName} · ERC-8004 agent #{LIVE_AGENT.agentId} · Mandate subgraph v0.0.2
-    </div>
-  )
-}
-
-function fmtTs(unixSecs: number): string {
-  return new Date(unixSecs * 1000).toLocaleString('en-US', {
-    month: 'short', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-    hour12: false,
-  })
-}
-
-export default async function AgentOverviewPage() {
-  const [data, settlementsData] = await Promise.all([
+export default async function OverviewPage() {
+  const [data, arc, settlementsData, updates] = await Promise.all([
     getAgentLiveData(),
+    getArcBalance(LIVE_AGENT.address),
     getArcSettlements(LIVE_AGENT.address),
+    fetchRecentUpdates(LIVE_AGENT.address).catch(() => []),
   ])
+  const nowS = nowSeconds()
+  const exp = untilExpiry(data.scopeExpiry)
+  const expiryFrac = data.scopeExpiry ? Math.max(0, Math.min(1, (data.scopeExpiry - nowS) / SCOPE_WINDOW_S)) : 0
+  const ok = settlementsData.settlements.filter(s => s.success)
+  const spent24 = ok.filter(s => s.timestamp >= nowS - 86400).reduce((a, s) => a + s.amountUsdc, 0)
+  const dailyCap = data.maxDailySpendUsdc ?? 0
+  const spentPct = dailyCap > 0 ? (spent24 / dailyCap) * 100 : 0
 
-  const expiry = data.scopeExpiry ? fmtExpiry(data.scopeExpiry) : '—'
-  const expiryExpired = expiry === 'Expired'
+  const events: LiveEvent[] = [
+    ...settlementsData.settlements.map<LiveEvent>(s => ({ id: `arc:${s.txHash}`, kind: 'settlement', chain: 'arc', timestamp: s.timestamp, blockNumber: s.blockNumber, txHash: s.txHash, amountUsdc: s.amountUsdc, success: s.success })),
+    ...updates.map<LiveEvent>(u => ({ id: `sep:${u.id}`, kind: 'sync', chain: 'sepolia', timestamp: parseInt(u.blockTimestamp, 10), blockNumber: parseInt(u.blockNumber, 10), txHash: u.transactionHash.startsWith('0x') ? u.transactionHash : `0x${u.transactionHash}` })),
+  ].sort((a, b) => b.timestamp - a.timestamp)
+
+  const status = data.fetchError ? 'error' : !data.scopeFound ? 'syncing' : data.authorized ? 'authorized' : 'revoked'
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <DataSourceBanner data={data} />
+    <div className="flex min-w-0 flex-col gap-6">
+      {/* ── Status line ── */}
+      <div className="reveal flex flex-wrap items-center gap-2 text-[12px]" style={{ ['--i' as string]: 0 }}>
+        {status === 'error' && <Chip tone="deny" dot>Live data unavailable · {data.fetchError}</Chip>}
+        {status === 'syncing' && <Chip tone="warn" dot>Subgraph syncing · scope not indexed yet</Chip>}
+        {status === 'authorized' && <Chip tone="allow" live>Live</Chip>}
+        {status === 'revoked' && <Chip tone="deny" dot>Authority revoked</Chip>}
+        <span className="text-text-3">ENS <span className="font-mono text-text-2">{LIVE_AGENT.ensName}</span></span>
+        <span className="text-text-3">· ERC-8004 <span className="font-mono text-text-2">#{LIVE_AGENT.agentId}</span></span>
+        <span className="text-text-3">· Mandate subgraph v0.0.2 · Agent0 (Base)</span>
+      </div>
 
-      {/* Agent identity header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-xl ${TIER_RING[LIVE_AGENT.tier]}`}
-          >
-            ◈
-          </div>
+      {/* ── Hero ── */}
+      <section className="grid gap-4 lg:grid-cols-12">
+        {/* Statement */}
+        <div className="reveal flex flex-col justify-between lg:col-span-4" style={{ ['--i' as string]: 1 }}>
           <div>
-            <h1 className="font-mono text-xl font-semibold text-[var(--text)]">
-              {LIVE_AGENT.ensName}
+            <div className="eyebrow">Authority state</div>
+            <h1 className="display mt-3 text-[42px] leading-[1.02] sm:text-[52px]">
+              {status === 'authorized' ? <>Cleared to trade,<br /><em className="text-seal text-glow-seal">within bounds.</em></>
+                : status === 'revoked' ? <>Authority<br /><em className="text-deny text-glow-deny">revoked.</em></>
+                : status === 'syncing' ? <>Waiting on<br /><em className="text-warn">the index.</em></>
+                : <>Live data<br /><em className="text-deny">unreachable.</em></>}
             </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-[var(--text-3)]">#{LIVE_AGENT.agentId}</span>
-              <span className="text-[var(--border)]">·</span>
-              <TierBadge tier={LIVE_AGENT.tier} />
-              <span className="text-[var(--border)]">·</span>
-              <span className="font-mono text-xs text-[var(--text-2)]">
-                owner {shortAddr(LIVE_AGENT.ownerAddress)}
-              </span>
+            <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-text-2">
+              The mandate lives in an ENS record and a mirror contract the agent cannot edit.
+              Every trade is checked against it, composed with live reputation, at the moment of execution.
+            </p>
+          </div>
+
+          <div className="mt-6 flex items-center gap-5">
+            <Gauge pct={data.trustScore} size={116} tone={data.trustScore >= 60 ? 'allow' : 'deny'}
+              label={<div className="num text-[26px] font-bold leading-none">{data.trustScore.toFixed(0)}</div>} sub="trust" />
+            <div className="flex flex-col gap-2 text-[12px]">
+              <div className="flex items-center justify-between gap-6"><span className="text-text-3">Threshold</span><span className="num text-text">60</span></div>
+              <div className="flex items-center justify-between gap-6"><span className="text-text-3">Mandate history</span><span className="num text-allow">{data.mandateHistoryScore}</span></div>
+              <div className="flex items-center justify-between gap-6"><span className="text-text-3">ERC-8004</span><span className="num text-chain">{data.erc8004Score === null ? 'n/a · Sepolia' : data.erc8004Score.toFixed(0)}</span></div>
+              <div className="flex items-center justify-between gap-6"><span className="text-text-3">Scope expires</span><span className={`num ${exp.expired ? 'text-deny' : 'text-seal'}`}>{exp.label}</span></div>
             </div>
           </div>
         </div>
 
-        {/* Trust score */}
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-right glow-emerald">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-500/70">Trust Score</p>
-          <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-gradient-emerald">
-            {data.trustScore.toFixed(1)}
-          </p>
-          {data.erc8004Score === null ? (
-            <p className="mt-0.5 text-xs text-[var(--text-3)]">ERC-8004 unknown · Sepolia</p>
-          ) : (
-            <p className="mt-0.5 text-xs text-emerald-400/80">ERC-8004 · {data.erc8004Score.toFixed(0)}</p>
-          )}
+        {/* Map */}
+        <div className="reveal lg:col-span-5" style={{ ['--i' as string]: 2 }}>
+          <MapPanel allowed={data.allowedProtocols} trustScore={data.trustScore} expiryFrac={expiryFrac} authorized={status === 'authorized'} ensName={LIVE_AGENT.ensName} />
         </div>
-      </div>
 
-      {/* Permission scope cards */}
-      <div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-3)]">
-          Permission Scope
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Card>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Protocols</p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {data.allowedProtocols.length > 0 ? (
-                  data.allowedProtocols.map(p => (
-                    <Badge key={p} variant="brand">{PROTOCOL_LABELS[p] ?? p}</Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-[var(--text-3)]">—</span>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Positions</p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {data.allowedPositionTypes.length > 0 ? (
-                  data.allowedPositionTypes.map(t => (
-                    <Badge key={t} variant="neutral">{t.toUpperCase()}</Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-[var(--text-3)]">—</span>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Max Position</p>
-              <p className="mt-2 font-mono text-lg font-semibold text-[var(--text)]">
-                {data.maxPositionSizeUsdc !== null ? fmtUsdc(data.maxPositionSizeUsdc) : '—'}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">per trade</p>
-            </CardBody>
-          </Card>
-
-          <Card accentColor={expiryExpired ? '#ef4444' : undefined}>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Expires In</p>
-              <p className={`mt-2 font-mono text-lg font-semibold ${expiryExpired ? 'text-red-400' : 'text-[var(--text)]'}`}>
-                {expiry}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">
-                max daily {data.maxDailySpendUsdc !== null ? fmtUsdc(data.maxDailySpendUsdc) : '—'}
-              </p>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-
-      {/* Score breakdown */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Trust Score',   value: data.trustScore.toFixed(1),   accent: undefined as 'emerald' | 'brand' | undefined },
-          { label: 'Mandate Score', value: data.mandateHistoryScore.toString(), accent: 'emerald' as const },
-          { label: 'ERC-8004',      value: data.erc8004Score !== null ? data.erc8004Score.toFixed(0) : '—', accent: 'brand' as const },
-        ].map(({ label, value, accent }) => (
-          <StatCard key={label} label={label} value={value} accent={accent} />
-        ))}
-      </div>
-
-      {/* Recent Arc settlements — live */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-3)]">
-            Recent Arc Settlements
-          </h2>
-          <a href="/treasury" className="text-xs text-[var(--brand,#0ea5e9)] hover:underline">
-            Full history →
-          </a>
-        </div>
-        {settlementsData.fetchError ? (
-          <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-            ArcScan unavailable: {settlementsData.fetchError}
-          </div>
-        ) : settlementsData.settlements.length === 0 ? (
-          <div className="rounded border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-3)]">
-            No Arc USDC settlements yet · transfers appear here in real time
-          </div>
-        ) : (
-          <Card>
-            <div className="divide-y divide-[var(--border)]">
-              {settlementsData.settlements.slice(0, 4).map(s => (
-                <div key={s.txHash} className="flex items-center gap-4 px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
-                    s.success
-                      ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
-                      : 'bg-red-500/10 text-red-400 ring-red-500/20'
-                  }`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${s.success ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                    {s.success ? 'Settled' : 'Failed'}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-xs text-[var(--text)]">
-                      Block {s.blockNumber.toLocaleString()}
-                    </p>
-                    <a
-                      href={arcExplorerTx(s.txHash)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-[10px] text-[var(--text-3)] underline hover:text-[var(--text-2)]"
-                    >
-                      {s.txHash.slice(0, 8)}…{s.txHash.slice(-6)} ↗
-                    </a>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm font-semibold text-emerald-400">
-                      {s.amountUsdc < 1
-                        ? `$${s.amountUsdc.toFixed(2)}`
-                        : `$${s.amountUsdc.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-                    </p>
-                    <p className="text-xs text-[var(--text-3)]">{fmtTs(s.timestamp)}</p>
-                  </div>
-                </div>
-              ))}
+        {/* Guardrails */}
+        <div className="reveal flex flex-col gap-3 lg:col-span-3" style={{ ['--i' as string]: 3 }}>
+          <Panel className="p-4" hover>
+            <Stat label="Per-trade cap" value={usd(data.maxPositionSizeUsdc, { cents: false })} sub="maxPositionSizeUsdc · on-chain" />
+          </Panel>
+          <Panel className="p-4" hover>
+            <div className="flex items-center justify-between">
+              <Stat label="Spent · 24h" value={usd(spent24, { cents: true })} sub={`of ${usd(dailyCap, { cents: false })} daily cap`} tone="allow" />
+              <Gauge pct={spentPct} size={64} stroke={6} tone={spentPct > 80 ? 'deny' : 'allow'} label={<span className="num text-[11px] font-bold">{spentPct < 0.01 && spent24 > 0 ? '<.01' : spentPct.toFixed(spentPct < 1 ? 2 : 0)}%</span>} />
             </div>
-          </Card>
-        )}
-      </div>
+          </Panel>
+          <Panel className="p-4" hover>
+            <Stat label="Arc balance" value={usd(arc.balanceUsdc, { cents: true })} sub={arc.fetchError ? `RPC error` : `block ${arc.blockNumber.toLocaleString()} · native USDC`} tone="chain" />
+          </Panel>
+          <Panel className="p-4" hover>
+            <div className="eyebrow">Positions</div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {['spot', 'lp', 'perp'].map(t => <Chip key={t} tone={data.allowedPositionTypes.includes(t) ? 'allow' : 'deny'} dot>{t.toUpperCase()}</Chip>)}
+            </div>
+          </Panel>
+        </div>
+      </section>
 
-      {/* On-chain identity */}
-      <div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-3)]">
-          On-chain Identity
-        </h2>
-        <Card>
-          <CardBody>
-            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+      <div className="reveal -mx-4 min-w-0 overflow-hidden sm:-mx-6" style={{ ['--i' as string]: 4 }}><Ticker /></div>
+
+      {/* ── Quick simulate ── */}
+      <section className="reveal" style={{ ['--i' as string]: 5 }}>
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <div className="eyebrow">Try an attempt</div>
+            <h2 className="mt-1 text-lg font-semibold">What happens when the agent reaches?</h2>
+          </div>
+          <Link href="/execute" className="btn btn-seal">Open simulator</Link>
+        </div>
+        <QuickSim />
+      </section>
+
+      {/* ── Feed + identity ── */}
+      <section className="grid gap-4 lg:grid-cols-12">
+        <Panel className="reveal overflow-hidden lg:col-span-7" style={{ ['--i' as string]: 6 }}>
+          <PanelHead title="On-chain feed" right={<span>Arc settlements · Sepolia syncs</span>} />
+          <LiveFeed initial={events} />
+        </Panel>
+
+        <div className="reveal flex flex-col gap-4 lg:col-span-5" style={{ ['--i' as string]: 7 }}>
+          <Panel>
+            <PanelHead title="Scope · from PermissionMirror" right={<span>{data.syncCount ?? 0} syncs</span>} />
+            <div className="p-4">
+              <div className="flex flex-wrap gap-1.5">
+                {['uniswap-v3', 'curve', 'aave-v3', '1inch', 'gmx-perp', 'compound-v3'].map(p => (
+                  <Link key={p} href={`/execute?protocol=${p}`} className="transition hover:scale-[1.03]">
+                    <Chip tone={data.allowedProtocols.includes(p) ? 'allow' : 'deny'} dot>{protocolLabel(p)}</Chip>
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-3 text-[11.5px] text-text-3">Click a protocol to simulate against it. Denied protocols revert at the allowlist step.</p>
+            </div>
+          </Panel>
+          <Panel>
+            <PanelHead title="Identity" />
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-2.5 p-4 text-[12px] sm:grid-cols-2">
               {[
-                { label: 'Agent Wallet', value: LIVE_AGENT.address },
-                { label: 'Owner',        value: LIVE_AGENT.ownerAddress },
-                { label: 'ENS Name',     value: LIVE_AGENT.ensName },
-                { label: 'ERC-8004 ID',  value: `#${LIVE_AGENT.agentId}` },
-                { label: 'ENS Node',     value: data.ensNode ?? '—' },
-                { label: 'Token URI',    value: LIVE_AGENT.tokenUri, truncate: true },
-              ].map(({ label, value, truncate }) => (
-                <div key={label}>
-                  <dt className="text-xs text-[var(--text-3)]">{label}</dt>
-                  <dd className={`mt-0.5 font-mono text-xs text-[var(--text-2)] ${truncate ? 'truncate' : ''}`}>
-                    {value}
-                  </dd>
-                </div>
+                ['Agent wallet', <a key="w" className="font-mono text-text-2 hover:text-chain" href={EXPLORER.sepoliaAddr(LIVE_AGENT.address)} target="_blank" rel="noopener noreferrer">{shortAddr(LIVE_AGENT.address, 10, 6)}</a>],
+                ['Owner', <span key="o" className="font-mono text-text-2">{shortAddr(LIVE_AGENT.ownerAddress, 10, 6)}</span>],
+                ['ENS node', <span key="n" className="font-mono text-text-2">{data.ensNode ? shortAddr(data.ensNode, 10, 6) : '—'}</span>],
+                ['Last sync', <span key="s" className="font-mono text-text-2">{data.lastSyncedAt ? new Date(data.lastSyncedAt * 1000).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}</span>],
+                ['Tier', <Chip key="t" tone="seal">AUTONOMOUS</Chip>],
+                ['MCP', <a key="m" className="font-mono text-text-2 hover:text-chain" href="/api/mcp" target="_blank">/api/mcp ↗</a>],
+              ].map(([k, v]) => (
+                <div key={String(k)}><dt className="text-text-3">{k}</dt><dd className="mt-0.5">{v}</dd></div>
               ))}
             </dl>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Subgraph sync metadata */}
-      {data.scopeFound && data.syncCount !== null && (
-        <div>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-3)]">
-            Subgraph State
-          </h2>
-          <Card>
-            <CardBody>
-              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-                {[
-                  { label: 'Sync count',   value: data.syncCount.toString() },
-                  { label: 'Last synced',  value: data.lastSyncedAt ? new Date(data.lastSyncedAt * 1000).toLocaleString() : '—' },
-                  { label: 'Scope expiry', value: data.scopeExpiry ? new Date(data.scopeExpiry * 1000).toISOString().slice(0, 10) : '—' },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <dt className="text-xs text-[var(--text-3)]">{label}</dt>
-                    <dd className="mt-0.5 font-mono text-xs text-[var(--text-2)]">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </CardBody>
-          </Card>
+          </Panel>
         </div>
-      )}
+      </section>
     </div>
   )
 }
