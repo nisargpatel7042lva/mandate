@@ -618,3 +618,37 @@ txs); ISSUES.md L-002 and L-003 marked resolved; all "Phase 5 pending" reference
 replaced with live treasury links.
 
 **Spec files used:** `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-08 | UI | Redesign (branch `ui-redesign`)
+
+**Task:** Replace the sidebar dashboard with a product-designed, daily-use interface:
+better flow, real interactions, live motion, no static landing page.
+
+**Claude Code was asked to:** create the branch, read every existing screen, and redesign
+the whole app as a product designer would, keeping the dark theme and every live data
+source. Prompt saved verbatim in `/specs/phase-ui-redesign.md`.
+
+**AI-generated:** new design system (`globals.css`: control-room palette with an amber
+seal, Bricolage Grotesque / Instrument Serif / JetBrains Mono, motion tokens); app shell
+(`CommandBar`, `CommandPalette` ⌘K, `KillSwitchDrawer`, `UiProvider`); live polling
+(`/api/live`, `LiveProvider`, `Ticker`, `LiveFeed`, `BalancePulse`); UI primitives
+(`Panel`, `Chip`, `Gauge`, `CountUp`, `TxLink`, `SpendBar`); the canvas authority
+perimeter (`AuthorityMap`, `MapPanel`); shared enforcement rail (`Pipeline`, `useCheck`,
+`QuickSim`, `Simulator`, `runHistory`); all five pages rewritten; `lib/format.ts`;
+`KillSwitch` restyled with logic unchanged. Removed `Sidebar`, `Card`, `Badge`, `TradeLog`.
+Also fixed `getArcSettlements` treating Blockscout rate-limit rejections as "no
+transactions" (found while polling), with a 20s memo and last-good-list retention.
+
+**Human-directed / reviewed:** direction ("think as a product designer", daily-use flow,
+dynamic not landing-page); theme continuity.
+
+**Verified live:** all routes 200 on `next dev` with real subgraph + Arc data (trust 99,
+3 allowed protocols, 5 syncs, 2 settlements, balance ~$19); `/api/live` snapshot polled;
+simulator presets produce the expected authorized / blocked verdicts against `/api/check`;
+headless Chrome screenshots of every route at 1440px and 500px reviewed; `tsc` and
+`eslint` clean.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
