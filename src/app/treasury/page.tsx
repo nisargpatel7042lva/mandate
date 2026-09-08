@@ -1,9 +1,9 @@
-// Screen D: Treasury — Phase 6 (Sept 8–9)
+// Screen D: Treasury — Phase 6 (Sept 8–9), updated Phase 9 (settlements live)
 // Live: Arc testnet USDC balance (via viem getBalance, native currency on Arc).
 // Live: authorization trail from the Mandate subgraph (PermissionUpdate tx hashes on Sepolia).
-// Fixture: settlement history — wires to real Arc USDC transfers once Phase 5 completes.
+// Live: Arc settlement history via ArcScan txlist API (Phase 5 complete, real USDC transfers).
 
-import { getArcBalance, arcExplorerTx, arcExplorerAddr } from '@/lib/arc-data'
+import { getArcBalance, getArcSettlements, arcExplorerTx, arcExplorerAddr } from '@/lib/arc-data'
 import { getAgentLiveData, LIVE_AGENT } from '@/lib/server-data'
 import { fetchRecentUpdates, type MandatePermissionUpdate } from '@/lib/mandate-subgraph'
 import { fmtUsdc, fmtExpiry, shortAddr } from '@/lib/example-data'
@@ -54,10 +54,11 @@ function sepoliaExplorerTx(hash: string): string {
 }
 
 export default async function TreasuryPage() {
-  const [arcData, agentData, updates] = await Promise.all([
+  const [arcData, agentData, updates, settlementsData] = await Promise.all([
     getArcBalance(LIVE_AGENT.address),
     getAgentLiveData(),
     fetchRecentUpdates(LIVE_AGENT.address).catch((): MandatePermissionUpdate[] => []),
+    getArcSettlements(LIVE_AGENT.address),
   ])
 
   const dailyLimit = agentData.maxDailySpendUsdc ?? 50_000
@@ -235,56 +236,109 @@ export default async function TreasuryPage() {
         </CardBody>
       </Card>
 
-      {/* Arc settlement history */}
+      {/* Arc settlement history — live from ArcScan txlist API */}
       <Card>
         <CardHeader>
           <CardTitle>Arc Settlement History</CardTitle>
-          <Badge variant="neutral">Arc testnet · USDC</Badge>
+          <Badge variant={settlementsData.settlements.length > 0 ? 'success' : 'neutral'}>
+            {settlementsData.settlements.length > 0
+              ? `${settlementsData.settlements.length} settlement${settlementsData.settlements.length !== 1 ? 's' : ''} · live`
+              : 'Arc testnet · USDC'}
+          </Badge>
         </CardHeader>
 
+        {settlementsData.fetchError && (
+          <div className="mx-4 mb-2 rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
+            ArcScan unavailable: {settlementsData.fetchError}
+          </div>
+        )}
+
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_90px_120px_120px] gap-4 border-b border-[var(--border)] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)]">
-          <span>Transaction</span>
+        <div className="grid grid-cols-[1fr_100px_100px_130px] gap-4 border-b border-[var(--border)] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)]">
+          <span>Block · Time</span>
           <span className="text-right">Amount</span>
           <span className="text-center">Status</span>
           <span>Explorer</span>
         </div>
 
-        {/* Empty state — no Phase 5 settlements exist yet */}
-        <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-3)]">
-            ⟳
+        {settlementsData.settlements.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-3)]">
+              ⟳
+            </div>
+            <p className="text-sm font-medium text-[var(--text-2)]">No settlements yet</p>
+            <p className="text-xs text-[var(--text-3)]">
+              Arc USDC transfers from the agent wallet appear here in real time.
+            </p>
           </div>
-          <p className="text-sm font-medium text-[var(--text-2)]">No settlements yet</p>
-          <p className="max-w-xs text-xs text-[var(--text-3)]">
-            Arc USDC transfers appear here once Phase 5 (Circle Arc settlement) completes.
-            Each entry links to a real{' '}
-            <a
-              href="https://testnet.arcscan.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-[var(--text-2)]"
-            >
-              ArcScan
-            </a>{' '}
-            transaction and traces back to the authorization event above.
-          </p>
-          <p className="mt-1 font-mono text-[10px] text-[var(--text-3)]">
-            Explorer: {arcExplorerTx('0x…')}
-          </p>
-        </div>
+        ) : (
+          <div className="divide-y divide-[var(--border-subtle)]">
+            {settlementsData.settlements.map(s => {
+              const date = new Date(s.timestamp * 1000)
+              const dateStr = date.toLocaleString('en-US', {
+                month: 'short', day: '2-digit',
+                hour: '2-digit', minute: '2-digit',
+                hour12: false,
+              })
+              return (
+                <div
+                  key={s.txHash}
+                  className="grid grid-cols-[1fr_100px_100px_130px] gap-4 px-4 py-3 text-sm"
+                >
+                  <div>
+                    <p className="font-mono text-xs text-[var(--text)]">
+                      Block {s.blockNumber.toLocaleString()}
+                    </p>
+                    <p className="font-mono text-[10px] text-[var(--text-3)]">{dateStr}</p>
+                  </div>
+                  <p className="self-center text-right font-mono text-xs font-semibold text-emerald-400">
+                    {s.amountUsdc < 1
+                      ? `$${s.amountUsdc.toFixed(2)}`
+                      : `$${s.amountUsdc.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                  </p>
+                  <div className="flex items-center justify-center">
+                    <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+                      s.success
+                        ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
+                        : 'bg-red-500/10 text-red-400 ring-red-500/20'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${s.success ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                      {s.success ? 'Settled' : 'Failed'}
+                    </span>
+                  </div>
+                  <a
+                    href={arcExplorerTx(s.txHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="self-center font-mono text-[10px] text-[var(--text-3)] underline hover:text-[var(--text-2)]"
+                  >
+                    {shortAddr(s.txHash)} ↗
+                  </a>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </Card>
 
-      {/* Deposit notice */}
+      {/* Agent Arc address */}
       <Card>
         <CardHeader>
-          <CardTitle>Fund Agent Wallet</CardTitle>
-          <Badge variant="neutral">Phase 5 pending</Badge>
+          <CardTitle>Agent Arc Wallet</CardTitle>
+          <Badge variant="success">Arc testnet · funded</Badge>
         </CardHeader>
         <CardBody>
           <p className="text-sm text-[var(--text-2)]">
-            The funding flow (deposit USDC into the agent&apos;s Arc wallet) is not yet available —
-            it depends on Phase 5 exposing a Circle Arc wallet endpoint. Phase 5 is in progress.
+            Funded via{' '}
+            <a
+              href="https://faucet.circle.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-[var(--text)]"
+            >
+              faucet.circle.com
+            </a>
+            . Settlements are native USDC value transfers — no token contract, no approval.
           </p>
           <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
             <p className="text-xs text-[var(--text-3)]">Agent Arc address</p>

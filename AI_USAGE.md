@@ -534,6 +534,32 @@ data. All 5 routes return 200. Latency 6–15ms per underwriting check.
 
 **Spec files used:** `/specs/phase9-integration.md`
 
+### 2026-09-08 | UI | Phase 9 (treasury settlement wiring)
+
+**Task:** Wire the treasury settlement history table to real Arc USDC transfers now that
+Phase 5 completed. Two on-chain settlements exist: `0x67b798d6…` (0.25 USDC, block
+60934278) and `0xfdefb2eb…` (0.1 USDC, block 60934365).
+
+**Claude Code was asked to:**
+- Verify the ArcScan txlist API works against the agent address — confirmed returning
+  both settlements with value, blockNumber, timeStamp, isError fields.
+- Add `getArcSettlements(address)` to `src/lib/arc-data.ts` — calls ArcScan
+  `?module=account&action=txlist`, filters to outgoing transactions (from === address),
+  converts 18-decimal native value to USDC float. Returns `ArcSettlementsData` with
+  `settlements[]` and `fetchError`.
+- Update `src/app/treasury/page.tsx` — add `getArcSettlements` to the parallel fetch,
+  replace empty-state settlement section with a live table (Block, Amount, Status badge,
+  ArcScan link). Replace "Fund Agent Wallet / Phase 5 pending" card with "Agent Arc
+  Wallet / funded" since the wallet is now live.
+
+**AI-generated:** `getArcSettlements` function and `ArcSettlement` / `ArcSettlementsData`
+interfaces; the settlement table in treasury page; the updated wallet card.
+
+**Verified live:** `/treasury` returns both real settlements — `0x67b798…` $0.25 and
+`0xfdefb2…` $0.10 — with correct blocks, timestamps and ArcScan links.
+
+**Spec files used:** `/specs/phase9-integration.md`
+
 ### 2026-09-07 | Backend | Phase 5 (Arc settlement + reputation write-back)
 
 **Task:** Move real USDC on Arc testnet for an approved trade, tie the movement to the
