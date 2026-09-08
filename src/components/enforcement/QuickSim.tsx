@@ -33,17 +33,17 @@ export function QuickSim() {
                   <span className="block text-[11px] text-text-3">{pr.why}</span>
                 </span>
                 <span className="num text-[13px] font-semibold text-text-2">{usd(pr.amountUsdc, { cents: false })}</span>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-text-3 transition group-hover:translate-x-0.5 group-hover:text-seal"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-text-3 transition group-hover:translate-x-0.5 group-hover:text-white"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             )
           })}
         </div>
-        <Link href="/execute" className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-text-2 transition hover:text-seal">
+        <Link href="/execute" className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-text-2 transition hover:text-white">
           Open the full simulator <span className="text-text-3">→</span>
         </Link>
       </div>
 
-      <div className="panel ticks min-h-[220px] p-4">
+      <div className="panel min-h-[220px] p-4">
         {runState === 'idle' && !error && (
           <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
             <div className="display text-2xl italic text-text-2">Pick an attempt.</div>
@@ -55,7 +55,7 @@ export function QuickSim() {
           <>
             <div className="mb-3 flex items-center justify-between">
               <span className="eyebrow">{p ? `${protocolLabel(p.protocol)} · ${usd(p.amountUsdc, { cents: false })}` : 'Check'}</span>
-              {runState === 'calling' && <span className="flex items-center gap-1.5 text-[11px] text-seal"><span className="h-1.5 w-1.5 rounded-full bg-seal live-dot" />querying subgraphs</span>}
+              {runState === 'calling' && <span className="flex items-center gap-1.5 text-[11px] text-white"><span className="h-1.5 w-1.5 rounded-full bg-white live-dot" />querying subgraphs</span>}
               {result && <span className="num text-[11px] text-text-3">{result.latencyMs}ms</span>}
             </div>
             <Pipeline steps={result?.steps ?? EMPTY_STEPS} states={runState === 'calling' ? ['idle','idle','idle','idle','idle'] : states} compact />

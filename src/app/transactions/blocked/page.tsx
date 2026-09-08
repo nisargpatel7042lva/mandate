@@ -41,12 +41,11 @@ export default async function IncidentPage() {
         <span className="text-text-3">{protocolLabel(scenario.protocol)} vs <span className="font-mono text-text-2">{LIVE_AGENT.ensName}</span> · real composeRiskScore run</span>
       </div>
 
-      <section className="reveal panel panel-deny ticks relative overflow-hidden p-6" style={{ ['--i' as string]: 1 }}>
-        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-deny/10 blur-3xl" />
-        <div className="grid gap-6 lg:grid-cols-12">
+      <section className="reveal panel panel-deny relative overflow-hidden p-6" style={{ ['--i' as string]: 1 }}>
+                <div className="grid gap-6 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <div className="eyebrow text-deny">Incident · transaction blocked</div>
-            <h1 className="display mt-2 text-[44px] leading-[1] text-deny text-glow-deny sm:text-[56px]">{title}.</h1>
+            <h1 className="mt-2 text-[40px] font-medium leading-[1.02] tracking-[-0.045em] text-white sm:text-[54px]">{title}<em className="display text-deny">.</em></h1>
             <p className="mt-3 max-w-lg text-[14px] leading-relaxed text-text-2">
               <span className="font-mono text-text">{protocolLabel(scenario.protocol)}</span> · {scenario.action} · {usd(scenario.amountUsdc, { cents: false })}.
               The agent reached for a venue outside its published mandate. No money moved.

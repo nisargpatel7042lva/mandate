@@ -21,7 +21,7 @@ export function Ticker() {
     ['ERC-8004', `#${LIVE_AGENT.agentId}`, 'plain'],
     ['STATUS', a ? (a.authorized ? 'AUTHORIZED' : 'REVOKED') : '…', a ? (a.authorized ? 'allow' : 'deny') : 'plain'],
   ]
-  const tone = { seal: 'text-seal', allow: 'text-allow', chain: 'text-chain', deny: 'text-deny', plain: 'text-text' }
+  const tone = { seal: 'text-white', allow: 'text-allow', chain: 'text-chain', deny: 'text-deny', plain: 'text-text' }
   const row = items.map(([k, v, t], i) => (
     <span key={i} className="flex items-center gap-2 pr-10">
       <span className="eyebrow !text-[9.5px]">{k}</span>
