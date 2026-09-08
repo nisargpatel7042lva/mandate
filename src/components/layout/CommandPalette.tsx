@@ -27,7 +27,8 @@ export function CommandPalette() {
   }
 
   const items = useMemo<Item[]>(() => [
-    { id: 'nav-overview',  group: 'Go to',   label: 'Overview',  hint: 'Authority map, live feed',      run: () => go('/') },
+    { id: 'nav-home',      group: 'Go to',   label: 'Home',      hint: 'The gate',                      run: () => go('/') },
+    { id: 'nav-console',   group: 'Go to',   label: 'Console',   hint: 'Authority map, live feed',      run: () => go('/console') },
     { id: 'nav-simulate',  group: 'Go to',   label: 'Simulate',  hint: 'Run an underwriting check',     run: () => go('/execute') },
     { id: 'nav-ledger',    group: 'Go to',   label: 'Ledger',    hint: 'Spend, events, kill switch',    run: () => go('/dashboard') },
     { id: 'nav-treasury',  group: 'Go to',   label: 'Treasury',  hint: 'Arc balance and settlements',   run: () => go('/treasury') },
@@ -70,7 +71,7 @@ export function CommandPalette() {
       )}
       {paletteOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg/70 p-4 pt-[12vh] backdrop-blur-sm fade-in" onMouseDown={close}>
-          <div className="panel ticks w-full max-w-xl overflow-hidden" onMouseDown={e => e.stopPropagation()} style={{ animation: 'rise .35s var(--ease-out-expo)' }}>
+          <div className="panel w-full max-w-xl overflow-hidden" onMouseDown={e => e.stopPropagation()} style={{ animation: 'rise .35s var(--ease-out-expo)' }}>
             <div className="flex items-center gap-3 border-b border-line px-4">
               <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="text-text-3"><circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M9 9l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               <input
@@ -95,7 +96,7 @@ export function CommandPalette() {
                     <button
                       onMouseEnter={() => setCursor(i)} onClick={it.run}
                       className={`flex w-full items-center gap-3 px-4 py-2 text-left transition ${i === cursor ? 'bg-surface-2' : ''}`}>
-                      <span className={`h-1 w-1 rounded-full ${it.group === 'Danger' ? 'bg-deny' : it.group === 'Simulate' ? 'bg-seal' : 'bg-text-3'}`} />
+                      <span className={`h-1 w-1 rounded-full ${it.group === 'Danger' ? 'bg-deny' : it.group === 'Simulate' ? 'bg-white' : 'bg-text-3'}`} />
                       <span className={`text-[13px] ${it.group === 'Danger' ? 'text-deny' : 'text-text'}`}>{it.label}</span>
                       {it.hint && <span className="ml-auto truncate font-mono text-[11px] text-text-3">{it.hint}</span>}
                     </button>
