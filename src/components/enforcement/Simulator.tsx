@@ -10,7 +10,7 @@ import { useLive } from '@/components/live/LiveProvider'
 import { useCheck } from './useCheck'
 import { runHistory } from './runHistory'
 import { Pipeline, EMPTY_STEPS } from './Pipeline'
-import { PRESETS } from './QuickSim'
+import { PRESETS } from '@/lib/presets'
 import { PROTOCOLS, protocolLabel, usd, relTime } from '@/lib/format'
 import { TRUST_THRESHOLD } from '@/lib/underwriting'
 
