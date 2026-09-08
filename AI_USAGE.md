@@ -591,3 +591,30 @@ reputation write-back tx `0x42bb23e5...`; `getSummary` returns count 1, value 1.
 client `0x7b77781A...`. The Arc transfer itself is blocked only on faucet funding.
 
 **Spec files used:** `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-08 | UI | Phase 9 (final polish)
+
+**Task:** Final pre-submission UI audit — remove stale "Phase 5 pending" copy, wire
+dashboard daily spend to real Arc settlement totals, update ISSUES.md to close resolved
+limitations.
+
+**Claude Code was asked to:** audit all five screens for stale copy, fix the execute
+page's settlement CTA, wire dashboard daily spend to `getArcSettlements()`, replace
+"Phase 5 pending" / "Phase 5" references across home/dashboard/TradeLog with honest
+live-data language, and update ISSUES.md checklist.
+
+**AI-generated:** edits to `src/app/execute/page.tsx`, `src/app/page.tsx`,
+`src/app/dashboard/page.tsx`, `src/components/dashboard/TradeLog.tsx`, `ISSUES.md`.
+
+**Human-directed / reviewed:** decision to keep TradeLog as example data (shape mismatch
+between Arc USDC value transfers and per-protocol trade records); decision to fall back
+to example spend when no settlements exist in the last 24h.
+
+**Verified live:** dashboard daily spend reads Arc settlement total ($0.35 from two real
+txs); ISSUES.md L-002 and L-003 marked resolved; all "Phase 5 pending" references
+replaced with live treasury links.
+
+**Spec files used:** `/specs/build-plan.md`

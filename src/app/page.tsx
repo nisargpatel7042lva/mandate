@@ -187,7 +187,8 @@ export default async function AgentOverviewPage() {
           </a>
         </div>
         <div className="mb-2 rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-          Example trades · Trade log wires to Arc settlement events in Phase 5
+          Example trades · Live settlement history available at{' '}
+          <a href="/treasury" className="underline hover:text-amber-300">Treasury ↗</a>
         </div>
         <Card>
           <div className="divide-y divide-[var(--border)]">

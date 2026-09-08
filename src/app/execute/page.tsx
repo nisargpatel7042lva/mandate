@@ -404,10 +404,13 @@ export default function ExecutePage() {
           {/* Settlement CTA / reset */}
           <div className="mt-4 flex flex-wrap items-center gap-3">
             {result.authorized && (
-              <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400 opacity-60">
-                ⟳ Settle via Arc USDC
-                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px]">Phase 5 pending</span>
-              </div>
+              <a
+                href="/treasury"
+                className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400 transition hover:bg-emerald-500/20"
+              >
+                ◎ View Arc Settlements
+                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px]">live ↗</span>
+              </a>
             )}
             <button
               onClick={reset}

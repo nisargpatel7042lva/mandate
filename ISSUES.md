@@ -50,15 +50,12 @@ enforcement logic driving the Execute screen is real; the historical log is not.
 **In README: "Trade history shown is illustrative; live entries require Phase 5 Arc USDC settlement."**
 
 ### L-002 — Arc wallet balance = $0
-The Arc testnet wallet (`0xa0062C…`) has no USDC. The treasury page shows $0 alongside
-a live block number — the connection is real; the balance is the correct current value.
-Phase 5 (Circle Arc wallet funding) has not run.
-**In README: "Agent wallet unfunded on Arc testnet; balance will update once Circle deposit endpoint is available."**
+~~The Arc testnet wallet (`0xa0062C…`) has no USDC.~~
+**RESOLVED (Phase 5, 2026-09-07):** Siddharth funded the wallet via faucet.circle.com. Treasury shows live balance.
 
 ### L-003 — Arc settlement history is empty
-No real Arc USDC transfers have been made; the treasury settlement table shows an
-honest empty state. Entries will appear automatically once Phase 5 creates transactions.
-**In README: "Settlement history is empty; entries appear after Phase 5 Arc USDC transfers."**
+~~No real Arc USDC transfers have been made.~~
+**RESOLVED (Phase 9, 2026-09-08):** Two live settlements wired: `0x67b798d6…` ($0.25, block 60934278) and `0xfdefb2eb…` ($0.10, block 60934365). Treasury table shows real data from ArcScan txlist API.
 
 ### L-004 — Underwriting is off-chain (Phase 7 stretch goal)
 The Execute screen runs `composeRiskScore` server-side. On-chain MandateGate enforcement
@@ -106,8 +103,8 @@ A push to upstream only reaches production after the fork is manually synced.
 | Propose trade → blocked (protocol) | `/execute` | GMX $5k · blocked at Protocol Allowlist | ✅ |
 | Propose trade → blocked (size) | `/execute` | Curve $12k · blocked at Position Size | ✅ |
 | Blocked detail page | `/transactions/blocked` | GMX enforcement chain live | ✅ |
-| Treasury balance | `/treasury` | Arc block 60,868,633 · $0 USDC (unfunded) | ✅ honest |
+| Treasury balance | `/treasury` | Arc block live · USDC balance via ArcScan | ✅ |
 | Authorization trail | `/treasury` | 1 PermissionSynced event on Sepolia | ✅ |
-| Settlement history | `/treasury` | Empty state (Phase 5 pending) | ✅ honest |
+| Settlement history | `/treasury` | 2 live settlements · $0.25 + $0.10 · ArcScan | ✅ |
 | Dashboard permissions | `/dashboard` | Live from subgraph · protocols + limits | ✅ |
 | Dashboard trade log | `/dashboard` | Example data · disclosed | ✅ honest |

@@ -4,6 +4,7 @@
 
 import { LIVE_AGENT, getAgentLiveData } from '@/lib/server-data'
 import { EXAMPLE_TRADES, fmtUsdc, fmtExpiry } from '@/lib/example-data'
+import { getArcSettlements } from '@/lib/arc-data'
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card'
 import { Badge, TierBadge } from '@/components/ui/Badge'
 import { KillSwitch } from '@/components/dashboard/KillSwitch'
@@ -25,7 +26,10 @@ const ALL_KNOWN_POSITION_TYPES = ['spot', 'lp', 'perp']
 const NOW_S = Math.floor(Date.now() / 1000)
 
 export default async function DashboardPage() {
-  const data = await getAgentLiveData()
+  const [data, settlementsData] = await Promise.all([
+    getAgentLiveData(),
+    getArcSettlements(LIVE_AGENT.address),
+  ])
 
   const blockedProtocols = ALL_KNOWN_PROTOCOLS.filter(p => !data.allowedProtocols.includes(p))
   const blockedPositionTypes = ALL_KNOWN_POSITION_TYPES.filter(t => !data.allowedPositionTypes.includes(t))
@@ -33,10 +37,17 @@ export default async function DashboardPage() {
   const expiry = data.scopeExpiry ? fmtExpiry(data.scopeExpiry) : '—'
   const expiresUrgent = data.scopeExpiry ? (data.scopeExpiry - NOW_S < 3 * 86400) : false
 
-  // Daily spend — example data until Phase 5 wires Arc settlement
+  // Daily spend — real Arc settlement totals (outgoing USDC from agent wallet today)
+  const todayStart = Math.floor(Date.now() / 1000) - 86400
+  const arcDailySpent = settlementsData.settlements
+    .filter(s => s.success && s.timestamp >= todayStart)
+    .reduce((sum, s) => sum + s.amountUsdc, 0)
+  // Fall back to example data if no real settlements exist yet
   const exampleDailySpent = EXAMPLE_TRADES
     .filter(t => t.status === 'approved')
     .reduce((s, t) => s + t.amountUsdc, 0)
+  const dailySpent = settlementsData.settlements.length > 0 ? arcDailySpent : exampleDailySpent
+  const dailySpentIsLive = settlementsData.settlements.length > 0
 
   return (
     <div className="flex flex-col gap-0">
@@ -151,14 +162,14 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>Daily Spend</CardTitle>
             <span className="font-mono text-xs text-[var(--text-2)]">
-              {fmtUsdc(exampleDailySpent)} /{' '}
+              {fmtUsdc(dailySpent)} /{' '}
               {data.maxDailySpendUsdc !== null ? fmtUsdc(data.maxDailySpendUsdc) : '—'}
             </span>
           </CardHeader>
           <CardBody>
             {(() => {
               const limit = data.maxDailySpendUsdc ?? 50_000
-              const pct = Math.min((exampleDailySpent / limit) * 100, 100)
+              const pct = Math.min((dailySpent / limit) * 100, 100)
               const color = pct > 80 ? 'bg-amber-400' : 'bg-emerald-400'
               return (
                 <div>
@@ -169,13 +180,20 @@ export default async function DashboardPage() {
                     <span>{pct.toFixed(0)}% of daily limit used</span>
                     <span>
                       {data.maxDailySpendUsdc !== null
-                        ? fmtUsdc(data.maxDailySpendUsdc - exampleDailySpent) + ' remaining'
+                        ? fmtUsdc(data.maxDailySpendUsdc - dailySpent) + ' remaining'
                         : '—'}
                     </span>
                   </div>
-                  <p className="mt-1 text-[10px] text-amber-400/70">
-                    Spend figures are example data · live trade log wires in Phase 5
-                  </p>
+                  {dailySpentIsLive ? (
+                    <p className="mt-1 text-[10px] text-emerald-400/70">
+                      Live Arc USDC settlements (last 24h) ·{' '}
+                      <a href="/treasury" className="underline hover:text-emerald-300">full history →</a>
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[10px] text-amber-400/70">
+                      Example data · no Arc settlements in last 24h
+                    </p>
+                  )}
                 </div>
               )
             })()}
