@@ -7,9 +7,10 @@ import {
   getAgentLiveData,
   type AgentLiveData,
 } from '@/lib/server-data'
-import { EXAMPLE_TRADES, shortAddr, fmtUsdc, fmtExpiry, fmtTime } from '@/lib/example-data'
+import { shortAddr, fmtUsdc, fmtExpiry } from '@/lib/example-data'
+import { getArcSettlements, arcExplorerTx } from '@/lib/arc-data'
 import { Card, CardBody } from '@/components/ui/Card'
-import { Badge, StatusBadge, TierBadge } from '@/components/ui/Badge'
+import { Badge, TierBadge } from '@/components/ui/Badge'
 
 const PROTOCOL_LABELS: Record<string, string> = {
   'uniswap-v3': 'Uniswap v3',
@@ -48,10 +49,19 @@ function DataSourceBanner({ data }: { data: AgentLiveData }) {
   )
 }
 
-export default async function AgentOverviewPage() {
-  const data = await getAgentLiveData()
+function fmtTs(unixSecs: number): string {
+  return new Date(unixSecs * 1000).toLocaleString('en-US', {
+    month: 'short', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false,
+  })
+}
 
-  const recentTrades = EXAMPLE_TRADES.slice(0, 4)
+export default async function AgentOverviewPage() {
+  const [data, settlementsData] = await Promise.all([
+    getAgentLiveData(),
+    getArcSettlements(LIVE_AGENT.address),
+  ])
 
   const expiry = data.scopeExpiry ? fmtExpiry(data.scopeExpiry) : '—'
   const expiryExpired = expiry === 'Expired'
@@ -176,39 +186,63 @@ export default async function AgentOverviewPage() {
         ))}
       </div>
 
-      {/* Recent activity — fixture until Phase 5 */}
+      {/* Recent Arc settlements — live */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-3)]">
-            Recent Activity
+            Recent Arc Settlements
           </h2>
-          <a href="/dashboard" className="text-xs text-[var(--brand,#0ea5e9)] hover:underline">
-            Full log →
+          <a href="/treasury" className="text-xs text-[var(--brand,#0ea5e9)] hover:underline">
+            Full history →
           </a>
         </div>
-        <div className="mb-2 rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-          Example trades · Live settlement history available at{' '}
-          <a href="/treasury" className="underline hover:text-amber-300">Treasury ↗</a>
-        </div>
-        <Card>
-          <div className="divide-y divide-[var(--border)]">
-            {recentTrades.map(trade => (
-              <div key={trade.id} className="flex items-center gap-4 px-4 py-3">
-                <StatusBadge status={trade.status} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-[var(--text)]">
-                    {trade.protocol} · {trade.action}
-                  </p>
-                  <p className="text-xs text-[var(--text-3)]">{trade.reason}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-sm text-[var(--text)]">{fmtUsdc(trade.amountUsdc)}</p>
-                  <p className="text-xs text-[var(--text-3)]">{fmtTime(trade.timestamp)}</p>
-                </div>
-              </div>
-            ))}
+        {settlementsData.fetchError ? (
+          <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
+            ArcScan unavailable: {settlementsData.fetchError}
           </div>
-        </Card>
+        ) : settlementsData.settlements.length === 0 ? (
+          <div className="rounded border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-3)]">
+            No Arc USDC settlements yet · transfers appear here in real time
+          </div>
+        ) : (
+          <Card>
+            <div className="divide-y divide-[var(--border)]">
+              {settlementsData.settlements.slice(0, 4).map(s => (
+                <div key={s.txHash} className="flex items-center gap-4 px-4 py-3">
+                  <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+                    s.success
+                      ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
+                      : 'bg-red-500/10 text-red-400 ring-red-500/20'
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${s.success ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                    {s.success ? 'Settled' : 'Failed'}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-xs text-[var(--text)]">
+                      Block {s.blockNumber.toLocaleString()}
+                    </p>
+                    <a
+                      href={arcExplorerTx(s.txHash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-[10px] text-[var(--text-3)] underline hover:text-[var(--text-2)]"
+                    >
+                      {s.txHash.slice(0, 8)}…{s.txHash.slice(-6)} ↗
+                    </a>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-semibold text-emerald-400">
+                      {s.amountUsdc < 1
+                        ? `$${s.amountUsdc.toFixed(2)}`
+                        : `$${s.amountUsdc.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                    </p>
+                    <p className="text-xs text-[var(--text-3)]">{fmtTs(s.timestamp)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* On-chain identity */}
