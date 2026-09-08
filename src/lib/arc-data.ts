@@ -44,7 +44,21 @@ export interface ArcSettlementsData {
   fetchError: string | null
 }
 
+// ArcScan (Blockscout) rate-limits aggressively. Every page render and the /api/live poll
+// share this 20s memo so one browser tab does not burn the quota; the last good result is
+// kept when a poll is rejected, and the rejection is surfaced as fetchError.
+const SETTLEMENTS_TTL_MS = 20_000
+let settlementsMemo: { address: string; at: number; data: ArcSettlementsData } | null = null
+
 export async function getArcSettlements(address: string): Promise<ArcSettlementsData> {
+  const memo = settlementsMemo
+  if (memo && memo.address === address && Date.now() - memo.at < SETTLEMENTS_TTL_MS && !memo.data.fetchError) return memo.data
+  const data = await fetchArcSettlements(address)
+  settlementsMemo = { address, at: Date.now(), data: data.fetchError && memo?.address === address ? { ...memo.data, fetchError: data.fetchError } : data }
+  return settlementsMemo.data
+}
+
+async function fetchArcSettlements(address: string): Promise<ArcSettlementsData> {
   try {
     const url =
       `${ARC_EXPLORER_BASE}/api?module=account&action=txlist` +
@@ -65,8 +79,9 @@ export async function getArcSettlements(address: string): Promise<ArcSettlements
       }>
     }
     if (json.status !== '1') {
-      // No transactions yet — not an error
-      return { settlements: [], fetchError: null }
+      // Blockscout uses status 0 both for an empty list and for rejections (rate limit).
+      if (/no transactions/i.test(json.message ?? '')) return { settlements: [], fetchError: null }
+      throw new Error(json.message || 'ArcScan returned status 0')
     }
     const settlements: ArcSettlement[] = json.result
       .filter(tx => tx.from.toLowerCase() === address.toLowerCase())
