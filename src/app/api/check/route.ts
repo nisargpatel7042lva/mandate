@@ -4,6 +4,7 @@
 
 import { composeRiskScore, PROTOCOL_BITS, TRUST_THRESHOLD } from '@/lib/underwriting'
 import { LIVE_AGENT } from '@/lib/server-data'
+import { getArcSettlements, sumSettledSince } from '@/lib/arc-data'
 
 const PROTOCOL_LABELS: Record<string, string> = {
   'uniswap-v3':  'Uniswap v3',
@@ -71,10 +72,16 @@ export async function POST(req: Request): Promise<Response> {
   const amountUsdc6 = BigInt(Math.round(amountUsdcDollars * 1_000_000))
   const protocolLabel = PROTOCOL_LABELS[protocol] ?? protocol
 
+  // The daily-cap step is only "live" if it sees what has actually settled today.
+  const nowS = Math.floor(Date.now() / 1000)
+  const settlementsData = await getArcSettlements(LIVE_AGENT.address).catch(() => ({ settlements: [], fetchError: 'unreachable' }))
+  const spentTodayUsdc = sumSettledSince(settlementsData.settlements, nowS - 86400)
+  const currentDailySpendUsdc6 = BigInt(Math.round(spentTodayUsdc * 1_000_000))
+
   const result = await composeRiskScore(LIVE_AGENT.address, {
     protocol,
     amountUsdc: amountUsdc6,
-    currentDailySpendUsdc: 0n,
+    currentDailySpendUsdc: currentDailySpendUsdc6,
   })
 
   const latencyMs = Date.now() - start
@@ -155,9 +162,11 @@ export async function POST(req: Request): Promise<Response> {
     detail: failedAt >= 0 && failedAt < 4
       ? '—'
       : dailyFail
-        ? `${fmtDollars(amountUsdc6)} would exceed daily limit of ${fmtDollars(result.maxDailySpendUsdc)}`
+        ? `${fmtDollars(amountUsdc6)} + ${fmtDollars(currentDailySpendUsdc6)} spent today exceeds daily limit of ${fmtDollars(result.maxDailySpendUsdc)}`
         : result.maxDailySpendUsdc !== null
-          ? `${fmtDollars(amountUsdc6)} fits within ${fmtDollars(result.maxDailySpendUsdc)} daily limit`
+          ? spentTodayUsdc > 0
+            ? `${fmtDollars(amountUsdc6)} + ${fmtDollars(currentDailySpendUsdc6)} spent today fits within ${fmtDollars(result.maxDailySpendUsdc)} daily limit`
+            : `${fmtDollars(amountUsdc6)} fits within ${fmtDollars(result.maxDailySpendUsdc)} daily limit`
           : '—',
     status: failedAt >= 0 && failedAt < 4 ? 'skip' : dailyFail ? 'fail' : 'pass',
   })

@@ -103,6 +103,11 @@ async function fetchArcSettlements(address: string): Promise<ArcSettlementsData>
   }
 }
 
+/** Sum of successful settlements at or after `sinceUnixSeconds`. The one place this math happens. */
+export function sumSettledSince(settlements: ArcSettlement[], sinceUnixSeconds: number): number {
+  return settlements.filter(s => s.success && s.timestamp >= sinceUnixSeconds).reduce((a, s) => a + s.amountUsdc, 0)
+}
+
 export async function getArcBalance(address: string): Promise<ArcBalanceData> {
   try {
     const client = createPublicClient({
