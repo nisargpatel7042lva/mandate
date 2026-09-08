@@ -683,3 +683,53 @@ screenshots at 1440 and 500 reviewed for every route; `tsc`, `eslint` and
 `next build` clean.
 
 **Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-08 | UI + correctness | Judge-readiness pass (branch `ui-cinematic`)
+
+**Task:** Fix inconsistent buttons, make the landing page scroll with real content
+below the fold, make navigation legible for a first-time visitor (a hackathon judge),
+and check the claim that "recent runs" and other numbers looked wrong.
+
+**Claude Code was asked to:** "check it out once" on the recent-runs/data-mismatch
+report rather than being handed a diagnosis — the investigation and the fix are both
+mine.
+
+**What was actually wrong, found by reading the code, not guessing:**
+1. `src/components/dashboard/KillSwitch.tsx` had been rewritten by a teammate
+   (`6f36d0e`) using `var(--border)` and `var(--surface)` plus raw `red-500`/`red-400`
+   Tailwind colors — tokens from the pre-redesign theme. `--border` was never defined
+   in the new design system (it's `--line`), so the panel's border silently dropped.
+   This is almost certainly what read as "buttons not matching."
+2. `/api/check` and `getBlockedScenario()` both called `composeRiskScore` with
+   `currentDailySpendUsdc: 0n` hardcoded, while the UI's own Pipeline component
+   labelled that step's source as "maxDailySpendUsdc · Arc settlements." The daily-cap
+   check was never actually live — it could only fail if a single trade alone exceeded
+   the cap. Fixed by fetching today's real settled total via `getArcSettlements` and
+   passing it through, in both call sites. Centralized the "spent since" math into
+   `sumSettledSince()` in `arc-data.ts` so it isn't hand-rolled per page again.
+
+**AI-generated:** `KillSwitch.tsx` rebuilt on `Panel`/`.btn`/`.btn-deny` (logic
+untouched); `Header.tsx` — nav is now contextual: in-page scroll-spy anchors (How it
+works / Live proof / Try it / FAQ) on the landing page, the four app routes elsewhere;
+new landing sections (`How it works`, `Live proof` strip of real on-chain addresses and
+links, `Try it` cards wired to the real simulator via `?preset=…&run=1`, `FAQ`, closing
+footer) with the viewport lock removed so the page scrolls; `PRESETS` moved out of the
+client-only `QuickSim` into `lib/presets.ts` so the landing (a server component) can
+use it without pulling in client code; `HeroVideo.tsx` — an optional video layer over
+the canvas gate that stays invisible until a file exists at `/hero-gate.mp4`, so
+dropping one in later requires no further code changes.
+
+**Human-directed / reviewed:** the three complaints in the user's message; the video
+itself, not yet supplied — a generation prompt was handed back for that.
+
+**Verified live:** `tsc`, `eslint`, `next build` all clean; `/api/check` daily-cap
+detail text now conditionally mentions today's spend; DOM-level check confirmed no
+duplicate content in any section (a screenshot artifact at extreme headless-Chrome
+viewport heights briefly looked like duplication — traced to the tooling, documented
+in memory, not a page bug). Full-page visual QA at every breakpoint was not completed
+this pass — the recommended next step is a manual pass in a real browser.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
