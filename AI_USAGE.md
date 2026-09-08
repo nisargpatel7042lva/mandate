@@ -652,3 +652,34 @@ headless Chrome screenshots of every route at 1440px and 500px reviewed; `tsc` a
 `eslint` clean.
 
 **Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-08 | UI | Cinematic pass (branch `ui-cinematic`)
+
+**Task:** Bring the whole site to the quality of two reference specs the team supplied
+(black stage, silver type, one serif-italic accent, liquid-metal pills, masked line
+reveals, grain, no cards or glow), and add a one-frame landing. Prompt and both specs
+were pasted in chat; the design language is recorded in `src/app/globals.css`.
+
+**Claude Code was asked to:** make the entire website follow the reference quality so
+it does not read as generic AI output, keeping every live data source.
+
+**AI-generated:** `globals.css` rewritten (tokens, Inter + Instrument Serif italic,
+liquid-metal `.pill-nav`, liquid-glass `.btn` family, `.badge`, reference entrance
+keyframes, `@layer components`); `Header` (three-column grid, mobile menu), `Main`,
+`LockViewport`; `GateScene` canvas (gate of light in fog, attempts pass or die at the
+threshold, driven by the live allowlist); new `/` landing with live stats row; overview
+moved to `/console`; `Chip`, `Panel`, `Gauge`, `Stat` re-skinned; headings across
+screens changed to Inter medium with a serif-italic accent; `AuthorityMap` colour
+parser fixed for minified 3-digit hex and rgba tokens.
+
+**Human-directed / reviewed:** the two reference specs; "not another AI-generated
+website"; the KillSwitch fix in `6f36d0e` was made by a teammate and kept as is.
+
+**Verified live:** all six routes 200 on `next dev` with real data; headless Chrome
+screenshots at 1440 and 500 reviewed for every route; `tsc`, `eslint` and
+`next build` clean.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
