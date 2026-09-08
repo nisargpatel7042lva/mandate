@@ -4,7 +4,7 @@
 import { LIVE_AGENT, getAgentLiveData } from '@/lib/server-data'
 import { fmtUsdc, fmtExpiry } from '@/lib/example-data'
 import { getArcSettlements, arcExplorerTx } from '@/lib/arc-data'
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card'
+import { Card, CardHeader, CardTitle, CardBody, StatCard } from '@/components/ui/Card'
 import { Badge, TierBadge } from '@/components/ui/Badge'
 import { KillSwitch } from '@/components/dashboard/KillSwitch'
 
@@ -153,47 +153,26 @@ export default async function DashboardPage() {
         <KillSwitch agentAddress={LIVE_AGENT.address} />
 
         {/* Settlement spend stats */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Today&apos;s Spend</p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-[var(--text)]">
-                {todaySettled > 0 ? `$${todaySettled.toFixed(2)}` : '$0.00'}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">
-                of {data.maxDailySpendUsdc !== null ? fmtUsdc(data.maxDailySpendUsdc) : '—'} daily cap
-              </p>
-              {todaySettled === 0 && settlements.length > 0 && (
-                <p className="mt-1 text-[10px] text-[var(--text-3)]">No Arc settlements in last 24h</p>
-              )}
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Total Settled</p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-emerald-400">
-                {totalSettled > 0 ? `$${totalSettled.toFixed(2)}` : '$0.00'}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">
-                {settlements.filter(s => s.success).length} successful Arc transfer{settlements.filter(s => s.success).length !== 1 ? 's' : ''}
-              </p>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Daily Cap Remaining</p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-[var(--text)]">
-                {data.maxDailySpendUsdc !== null
-                  ? `$${(data.maxDailySpendUsdc - todaySettled).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-                  : '—'}
-              </p>
-              <p className="text-xs text-[var(--text-3)]">
-                {todaySettled === 0 ? 'Full capacity available' : `$${todaySettled.toFixed(2)} used today`}
-              </p>
-            </CardBody>
-          </Card>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Today's Spend"
+            value={todaySettled > 0 ? `$${todaySettled.toFixed(2)}` : '$0.00'}
+            sub={`of ${data.maxDailySpendUsdc !== null ? fmtUsdc(data.maxDailySpendUsdc) : '—'} daily cap`}
+          />
+          <StatCard
+            label="Total Settled"
+            value={totalSettled > 0 ? `$${totalSettled.toFixed(2)}` : '$0.00'}
+            sub={`${settlements.filter(s => s.success).length} successful Arc transfer${settlements.filter(s => s.success).length !== 1 ? 's' : ''}`}
+            accent="emerald"
+          />
+          <StatCard
+            label="Cap Remaining"
+            value={data.maxDailySpendUsdc !== null
+              ? `$${(data.maxDailySpendUsdc - todaySettled).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+              : '—'}
+            sub={todaySettled === 0 ? 'Full capacity available' : `$${todaySettled.toFixed(2)} used today`}
+            accent="brand"
+          />
         </div>
 
         {/* Daily cap progress bar */}

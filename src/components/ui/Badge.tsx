@@ -4,13 +4,23 @@ import type { TxStatus, AuthorityTier } from '@/lib/types'
 type Variant = 'success' | 'warning' | 'danger' | 'brand' | 'neutral' | 'monitoring' | 'autonomous'
 
 const variantClasses: Record<Variant, string> = {
-  success:    'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400',
-  warning:    'bg-amber-500/10 text-amber-500 ring-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400',
-  danger:     'bg-red-500/10 text-red-500 ring-red-500/20 dark:bg-red-500/10 dark:text-red-400',
-  brand:      'bg-sky-500/10 text-sky-500 ring-sky-500/20 dark:bg-sky-500/10 dark:text-sky-400',
+  success:    'bg-emerald-500/10 text-emerald-400 ring-emerald-500/25',
+  warning:    'bg-amber-500/10 text-amber-400 ring-amber-500/25',
+  danger:     'bg-red-500/10 text-red-400 ring-red-500/25',
+  brand:      'bg-sky-500/10 text-sky-400 ring-sky-500/25',
   neutral:    'bg-[var(--surface-2)] text-[var(--text-2)] ring-[var(--border)]',
-  monitoring: 'bg-blue-500/10 text-blue-500 ring-blue-500/20 dark:text-blue-400',
-  autonomous: 'bg-orange-500/10 text-orange-500 ring-orange-500/20 dark:text-orange-400',
+  monitoring: 'bg-blue-500/10 text-blue-400 ring-blue-500/25',
+  autonomous: 'bg-orange-500/10 text-orange-400 ring-orange-500/25',
+}
+
+const dotColor: Record<Variant, string> = {
+  success:    'bg-emerald-400',
+  warning:    'bg-amber-400',
+  danger:     'bg-red-400',
+  brand:      'bg-sky-400',
+  neutral:    'bg-[var(--text-3)]',
+  monitoring: 'bg-blue-400',
+  autonomous: 'bg-orange-400',
 }
 
 interface BadgeProps {
@@ -23,20 +33,9 @@ interface BadgeProps {
 export function Badge({ variant = 'neutral', children, dot, className = '' }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ring-1 ring-inset ${variantClasses[variant]} ${className}`}
     >
-      {dot && (
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${
-            variant === 'success' ? 'bg-emerald-400' :
-            variant === 'danger' ? 'bg-red-400' :
-            variant === 'warning' ? 'bg-amber-400' :
-            variant === 'brand' ? 'bg-sky-400' :
-            variant === 'monitoring' ? 'bg-blue-400' :
-            variant === 'autonomous' ? 'bg-orange-400' : 'bg-[var(--text-3)]'
-          }`}
-        />
-      )}
+      {dot && <span className={`h-1.5 w-1.5 rounded-full ${dotColor[variant]}`} />}
       {children}
     </span>
   )

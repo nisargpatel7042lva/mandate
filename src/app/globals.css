@@ -26,10 +26,10 @@
 
 /* ─── Light mode ──────────────────────────────────────────────────────────── */
 :root {
-  --bg:            #f8f9fc;
+  --bg:            #f0f2f8;
   --surface:       #ffffff;
-  --surface-2:     #f1f3f8;
-  --surface-3:     #e8ecf5;
+  --surface-2:     #f4f6fc;
+  --surface-3:     #eaecf5;
   --border:        #dde2ef;
   --border-subtle: #edf0f7;
   --text:          #0d111c;
@@ -39,15 +39,15 @@
 
 /* ─── Dark mode ───────────────────────────────────────────────────────────── */
 .dark {
-  --bg:            #09090e;
-  --surface:       #0f1117;
-  --surface-2:     #161a24;
-  --surface-3:     #1e2535;
-  --border:        #1e2535;
-  --border-subtle: #141825;
-  --text:          #f0f3f8;
-  --text-2:        #8b96b4;
-  --text-3:        #4d5a78;
+  --bg:            #050510;
+  --surface:       #09091a;
+  --surface-2:     #0e0e22;
+  --surface-3:     #151530;
+  --border:        #1c1c3a;
+  --border-subtle: #0e0e22;
+  --text:          #e4e6f4;
+  --text-2:        #7880a8;
+  --text-3:        #3d4268;
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
@@ -60,6 +60,64 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border); }
+
+/* ─── Glass card utility ──────────────────────────────────────────────────── */
+.card-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(12px);
+}
+
+.dark .card-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ─── Glow utilities ──────────────────────────────────────────────────────── */
+.glow-emerald {
+  box-shadow: 0 0 20px -4px rgba(34, 197, 94, 0.25), 0 0 40px -8px rgba(34, 197, 94, 0.1);
+}
+.glow-red {
+  box-shadow: 0 0 20px -4px rgba(239, 68, 68, 0.25), 0 0 40px -8px rgba(239, 68, 68, 0.1);
+}
+.glow-brand {
+  box-shadow: 0 0 20px -4px rgba(14, 165, 233, 0.25), 0 0 40px -8px rgba(14, 165, 233, 0.1);
+}
+
+/* ─── Gradient text ───────────────────────────────────────────────────────── */
+.text-gradient-brand {
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Animated gradient border ────────────────────────────────────────────── */
+.border-glow-emerald {
+  border-color: rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.1) inset, 0 0 16px -4px rgba(34, 197, 94, 0.2);
+}
+.border-glow-red {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.1) inset, 0 0 16px -4px rgba(239, 68, 68, 0.2);
+}
+
+/* ─── Live pulse ──────────────────────────────────────────────────────────── */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}

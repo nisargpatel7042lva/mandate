@@ -9,7 +9,7 @@ import {
 } from '@/lib/server-data'
 import { shortAddr, fmtUsdc, fmtExpiry } from '@/lib/example-data'
 import { getArcSettlements, arcExplorerTx } from '@/lib/arc-data'
-import { Card, CardBody } from '@/components/ui/Card'
+import { Card, CardBody, StatCard } from '@/components/ui/Card'
 import { Badge, TierBadge } from '@/components/ui/Badge'
 
 const PROTOCOL_LABELS: Record<string, string> = {
@@ -95,15 +95,15 @@ export default async function AgentOverviewPage() {
         </div>
 
         {/* Trust score */}
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-right">
-          <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">Trust Score</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums text-[var(--text)]">
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-right glow-emerald">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-500/70">Trust Score</p>
+          <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-gradient-emerald">
             {data.trustScore.toFixed(1)}
           </p>
           {data.erc8004Score === null ? (
-            <p className="text-xs text-[var(--text-3)]">ERC-8004 unknown · Sepolia agent</p>
+            <p className="mt-0.5 text-xs text-[var(--text-3)]">ERC-8004 unknown · Sepolia</p>
           ) : (
-            <p className="text-xs text-emerald-400">ERC-8004 {data.erc8004Score.toFixed(0)}</p>
+            <p className="mt-0.5 text-xs text-emerald-400/80">ERC-8004 · {data.erc8004Score.toFixed(0)}</p>
           )}
         </div>
       </div>
@@ -171,18 +171,11 @@ export default async function AgentOverviewPage() {
       {/* Score breakdown */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Trust Score',   value: data.trustScore.toFixed(1), color: '' },
-          { label: 'Mandate Score', value: data.mandateHistoryScore.toString(), color: 'text-emerald-400' },
-          { label: 'ERC-8004',      value: data.erc8004Score !== null ? data.erc8004Score.toFixed(0) : 'Unknown', color: data.erc8004Score !== null ? 'text-blue-400' : 'text-[var(--text-3)]' },
-        ].map(({ label, value, color }) => (
-          <Card key={label}>
-            <CardBody className="text-center">
-              <p className="text-xs uppercase tracking-wider text-[var(--text-3)]">{label}</p>
-              <p className={`mt-1 text-2xl font-semibold tabular-nums ${color || 'text-[var(--text)]'}`}>
-                {value}
-              </p>
-            </CardBody>
-          </Card>
+          { label: 'Trust Score',   value: data.trustScore.toFixed(1),   accent: undefined as 'emerald' | 'brand' | undefined },
+          { label: 'Mandate Score', value: data.mandateHistoryScore.toString(), accent: 'emerald' as const },
+          { label: 'ERC-8004',      value: data.erc8004Score !== null ? data.erc8004Score.toFixed(0) : '—', accent: 'brand' as const },
+        ].map(({ label, value, accent }) => (
+          <StatCard key={label} label={label} value={value} accent={accent} />
         ))}
       </div>
 
