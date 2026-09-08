@@ -41,9 +41,10 @@ These are already set in Vercel. Ask if you want the Graph key rather than makin
 
 | Route | What it does | Key data source |
 |---|---|---|
-| `/execute` | Interactive trade-attempt demo screen | `POST /api/check` → `composeRiskScore` live |
+| `/execute` | Simulate: compose an attempt, watch the enforcement rail, verdict | `POST /api/check` → `composeRiskScore` live |
 | `/treasury` | Live Arc testnet balance + auth trail | `getArcBalance()` (viem), `fetchRecentUpdates()` |
-| `/dashboard` | Policy strip, kill switch, spend meter | `getAgentLiveData()` |
+| `/dashboard` | Ledger: spend vs caps, policy matrix, unified event timeline, kill switch | `getAgentLiveData()`, `getArcSettlements()`, `fetchRecentUpdates()` |
+| `/api/live` | GET snapshot polled by the command bar, ticker and feeds every 30s | all of the above, read-only |
 | `/` | Agent overview, trust score, scope | `getAgentLiveData()` |
 | `/transactions/blocked` | Blocked TX enforcement trace | `getBlockedScenario()` |
 
@@ -167,8 +168,8 @@ npm run read:identity                   # full on-chain read-back
 
 ### Done (UI track, Phases 4 / 6 / 8)
 
-- **`/` — Agent Overview**: live trust score, scope, protocols, expiry from subgraph
-- **`/dashboard` — Dashboard**: live policy strip (allowed/blocked/expiry), live daily limit
+- **`/` — Overview**: authority perimeter map (canvas, driven by live scope), trust gauge, guardrails, ticker, one-click simulator, on-chain feed
+- **`/dashboard` — Ledger**: spend vs caps, policy matrix, unified Arc + Sepolia event timeline, kill switch
 - **`/transactions/blocked` — Blocked TX**: live gmx-perp enforcement check, real reasons
 - **`/execute` — Execute**: interactive trade-attempt with animated underwriting steps;
   `POST /api/check` calls `composeRiskScore` live; three preset demo scenarios

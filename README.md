@@ -153,8 +153,6 @@ otherwise.
   MandateGate opcode (which would make it unbypassable inside the swap) is not built.
   `PermissionMirror.isAuthorized()` is deployed and live, so the gate has a real call
   target — but the gate itself is future work.
-- **The trade log is example data.** Historical trades on the dashboard are illustrative.
-  The enforcement decisions on `/execute` are real.
 - **Our subgraph does not index settlements.** It indexes permission syncs only; Arc
   settlements are verifiable on ArcScan but do not flow back into the subgraph yet.
 - **Agent0 indexes Base Mainnet only.** Our Sepolia agent has no record there, so the
