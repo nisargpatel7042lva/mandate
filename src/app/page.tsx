@@ -230,7 +230,7 @@ export default async function LandingPage() {
           </div>
           <div className="text-[12px] leading-relaxed text-text-3">
             <p>Built for ETHOnline 2026 on Ethereum Sepolia and Arc testnet.</p>
-            <p className="mt-1">ENS · The Graph · Circle Arc</p>
+            <p className="mt-1">ENS · The Graph · 1inch</p>
           </div>
         </div>
       </footer>
