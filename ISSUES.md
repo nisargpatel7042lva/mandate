@@ -84,10 +84,10 @@ pattern used in the Daily Spend section and the Agent home page.
 ## Known Limitations — Mention Honestly in README
 
 ### L-001 — Trade log is example data
-Until Phase 5 (Arc settlement) completes, the trade log on `/dashboard` and `/` shows
-static example trades from Sept 4 with fabricated block numbers and tx hashes. The
-enforcement logic driving the Execute screen is real; the historical log is not.
-**In README: "Trade history shown is illustrative; live entries require Phase 5 Arc USDC settlement."**
+~~Static example trades with fabricated block numbers and tx hashes.~~
+**RESOLVED (2026-09-08):** `src/lib/example-data.ts` was deleted and no UI file imports
+fixtures any more. The ledger and treasury read live Arc settlements — 9 transfers,
+$12.71 total, via `/api/live`.
 
 ### L-002 — Arc wallet balance = $0
 ~~The Arc testnet wallet (`0xa0062C…`) has no USDC.~~
@@ -95,19 +95,31 @@ enforcement logic driving the Execute screen is real; the historical log is not.
 
 ### L-003 — Arc settlement history is empty
 ~~No real Arc USDC transfers have been made.~~
-**RESOLVED (Phase 9, 2026-09-08):** Two live settlements wired: `0x67b798d6…` ($0.25, block 60934278) and `0xfdefb2eb…` ($0.10, block 60934365). Treasury table shows real data from ArcScan txlist API.
+**RESOLVED (Phase 9, 2026-09-08):** Live settlements wired from the ArcScan txlist API.
+Now 9 settlements totalling $12.71, starting with `0x67b798d6…` ($0.25, block 60934278)
+and `0xfdefb2eb…` ($0.10, block 60934365).
 
 ### L-004 — Underwriting is off-chain (Phase 7 stretch goal)
-The Execute screen runs `composeRiskScore` server-side. On-chain MandateGate enforcement
-(Phase 7) is a stretch goal timeboxed to Sept 11. The screen discloses this in its
-footnote: "off-chain underwriting (Phase 7 on-chain enforcement not yet deployed)."
-**In README: "MandateGate enforcement is off-chain for the demo; Phase 7 deploys it as a SwapVM opcode."**
+~~On-chain MandateGate enforcement is a stretch goal, not deployed.~~
+**RESOLVED (Phase 7, 2026-09-08):** MandateGate is deployed on Sepolia and enforcing
+inside the swap. Verified on-chain: the approved fill
+[`0x7d9fd1f7…`](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508)
+succeeded (block 11666873) and the out-of-scope fill
+[`0xad025e14…`](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283)
+**reverted** (block 11666888), both through executor `0x25A8fE7F…`.
 
-### L-005 — Agent registration and permission-setting have no UI
-Both steps must be done via CLI scripts (`npm run register-identity`,
-`npm run relayer`). `testagent.mandate.eth` (agentId 10099) is already registered and
-its scope is live (allowedProtocols 7, maxPosition $10k, maxDaily $50k).
-**In README: "Registration and permission sync are one-time CLI operations; the UI shows the resulting live state."**
+**Remaining nuance, still true:** the `/execute` simulator predicts the outcome by
+running `composeRiskScore` server-side, because a prediction has to render before a
+transaction is signed. The enforcement itself is on-chain; the preview is not, and the
+screen should say so rather than implying the preview is the enforcement.
+
+### L-005 — Agent onboarding is CLI, not UI
+Onboarding is a single command — `npm run onboard -- <label> <maxPosition> <maxDaily>
+<protocols>` — which registers the ERC-8004 identity, creates the ENSv2 subname, deploys
+the name's resolver, publishes the scope and mirrors it on-chain. Real transactions, but a
+terminal rather than a screen. `testagent.mandate.eth` (agentId 10099) is live with
+allowedProtocols 15, maxPosition $10k, maxDaily $50k.
+**In README: "Onboarding is one CLI command; the UI shows the resulting live state."**
 
 ### L-006 — Agent0 / ERC-8004 subgraph is Base Mainnet only
 Our agent is on Sepolia. The Agent0 subgraph has no Sepolia data, so `erc8004Score`
