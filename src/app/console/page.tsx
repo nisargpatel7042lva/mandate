@@ -7,6 +7,7 @@ import { getArcBalance, getArcSettlements } from '@/lib/arc-data'
 import { fetchRecentUpdates } from '@/lib/mandate-subgraph'
 import type { LiveEvent } from '@/lib/live'
 import { untilExpiry, usd, protocolLabel, shortAddr, EXPLORER, nowSeconds } from '@/lib/format'
+import { MANDATE_GATE_EXECUTOR } from '@/lib/mandate-gate'
 import { Panel, PanelHead, Stat } from '@/components/ui/Panel'
 import { Chip } from '@/components/ui/Chip'
 import { Gauge } from '@/components/ui/Gauge'
@@ -155,6 +156,7 @@ export default async function ConsolePage() {
                 ['Last sync', <span key="s" className="font-mono text-text-2">{data.lastSyncedAt ? new Date(data.lastSyncedAt * 1000).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}</span>],
                 ['Tier', <Chip key="t" tone="seal">AUTONOMOUS</Chip>],
                 ['MCP', <a key="m" className="font-mono text-text-2 hover:text-chain" href="/api/mcp" target="_blank">/api/mcp ↗</a>],
+                ['MandateGate', <a key="g" className="font-mono text-text-2 hover:text-chain" href={EXPLORER.sepoliaAddr(MANDATE_GATE_EXECUTOR)} target="_blank" rel="noopener noreferrer">1inch SwapVM ↗</a>],
               ].map(([k, v]) => (
                 <div key={String(k)}><dt className="text-text-3">{k}</dt><dd className="mt-0.5">{v}</dd></div>
               ))}

@@ -12,19 +12,9 @@ import { PRESETS } from '@/lib/presets'
 import { TRUST_THRESHOLD } from '@/lib/underwriting'
 import { HeroBackdrop } from '@/components/viz/HeroBackdrop'
 import { Chip } from '@/components/ui/Chip'
+import { MANDATE_GATE_ROUTER, MANDATE_GATE_EXECUTOR } from '@/lib/mandate-gate'
 
 const SUBGRAPH_URL = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_URL ?? null
-
-// Phase 7: the custom SwapVM opcode that enforces this same permission scope inside a
-// swap itself, not just before it. Standalone proof (see README), not wired into the
-// console/execute flow below -- this row is how a judge finds the real transactions.
-//
-// Links to the executor contract (MockTaker), not the router (MandateSwapVMRouter)
-// itself: both real fills were sent *to* the executor, which called the router
-// internally -- so the router's own Etherscan page shows no direct transactions at
-// all, while the executor's does, immediately, with both outcomes visible.
-const MANDATE_GATE_ROUTER = '0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987'
-const MANDATE_GATE_EXECUTOR = '0x25A8fE7F407E38b2DB50c49ad9B81bB474228e05'
 
 const STEPS = [
   { n: '01', title: 'Publish', body: 'The mandate — allowed protocols, position size, daily cap, expiry — is written once as an ENS text record the agent does not control.' },
