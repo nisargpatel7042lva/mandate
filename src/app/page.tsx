@@ -14,7 +14,30 @@ import { HeroBackdrop } from '@/components/viz/HeroBackdrop'
 import { Chip } from '@/components/ui/Chip'
 import { MANDATE_GATE_ROUTER, MANDATE_GATE_EXECUTOR } from '@/lib/mandate-gate'
 
-const SUBGRAPH_URL = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_URL ?? null
+const SUBGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_URL ?? null
+
+/**
+ * The bare endpoint is a POST-only GraphQL API: opening it in a browser lands on
+ * an empty GraphiQL editor showing only its own welcome comment, which reads as
+ * broken. GraphiQL picks up a `query` parameter, so send visitors in with a real
+ * query already typed and one click from live data.
+ */
+const SUBGRAPH_QUERY = `{
+  agentScopes {
+    id
+    allowedProtocols
+    allowedPositionTypes
+    maxPositionSizeUsdc
+    maxDailySpendUsdc
+    expiry
+    syncCount
+    lastSyncedBlock
+  }
+}`
+
+const SUBGRAPH_URL = SUBGRAPH_ENDPOINT
+  ? `${SUBGRAPH_ENDPOINT}?query=${encodeURIComponent(SUBGRAPH_QUERY)}`
+  : null
 
 const STEPS = [
   { n: '01', title: 'Publish', body: 'The mandate — allowed protocols, position size, daily cap, expiry — is written once as an ENS text record the agent does not control.' },
