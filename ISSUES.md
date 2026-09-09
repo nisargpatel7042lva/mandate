@@ -6,6 +6,25 @@ Triaged during the full end-to-end walk. Format: description → status → tria
 
 ## Fix Before Submission
 
+### I-004 — Solidity dependencies were floating, and one upstream repo moved
+`package.json` referenced `github:1inch/swap-vm` with no ref. That repo has since been
+restructured from `src/` to `contracts/`, so a fresh install pulls a layout our imports do
+not match and `forge build` fails with "Source not found". It only kept working locally
+because npm's lockfile pinned the older commit; `bun install` ignores that lockfile and
+reproduces the break. A judge cloning the repo would have hit it.
+
+**Fix applied:** pinned all three git dependencies to the exact commits the deployed
+contracts were built against — swap-vm `49183383`, aqua `81c26e46` (the `v1.0.0` tag is
+annotated and points at a tag object rather than a commit, which is separately why bun
+could not resolve it), forge-std `8e40513d`.
+
+**Known tooling gap:** bun resolves these git dependencies but extracts nothing, leaving
+empty directories. Use npm for the Solidity toolchain. The Next.js app builds fine under
+bun — the 1inch packages are Solidity-only and are not imported by any TypeScript.
+
+**Status: FIXED** (verified: `forge build` compiles, `forge test` 4/4 passing)
+
+
 ### I-002 — /api/revoke could kill the agent from anywhere, unauthenticated
 The kill switch POSTed to `/api/revoke`, which signed `PermissionMirror.sync()` with a
 server-held `PRIVATE_KEY`. The route took no body, no token and no auth, so once the key
