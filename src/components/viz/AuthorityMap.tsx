@@ -64,9 +64,17 @@ export function AuthorityMap({ allowed, trustScore, expiryFrac, authorized, ensN
 
     const buildNodes = () => {
       const { allowed } = propsRef.current
-      nodes = PROTOCOLS.map((p, i) => {
+      // Each ring distributes its own members evenly around the full circle --
+      // allowed and denied are separate groups, not fixed slots in the full
+      // protocol list, so 3 allowed nodes land 120deg apart regardless of where
+      // they sit in PROTOCOLS, and it stays evenly spaced as the split changes.
+      const allowedList = PROTOCOLS.filter(p => allowed.includes(p.id))
+      const deniedList = PROTOCOLS.filter(p => !allowed.includes(p.id))
+      nodes = PROTOCOLS.map(p => {
         const isAllowed = allowed.includes(p.id)
-        const angle = (-Math.PI / 2) + (i / PROTOCOLS.length) * Math.PI * 2
+        const group = isAllowed ? allowedList : deniedList
+        const idx = Math.max(0, group.findIndex(g => g.id === p.id))
+        const angle = (-Math.PI / 2) + (idx / Math.max(1, group.length)) * Math.PI * 2
         const prev = nodes.find(n => n.id === p.id)
         return { id: p.id, label: p.label, short: p.short, allowed: isAllowed, angle, r: isAllowed ? R * 0.58 : R * 1.42, x: 0, y: 0, hot: prev?.hot ?? 0 }
       })
