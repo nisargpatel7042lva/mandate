@@ -97,8 +97,8 @@ enforced independently, from their own records.
 | PermissionMirror | [`0x6f19dd6f…`](https://sepolia.etherscan.io/address/0x6f19dd6f759fac8a19579ecdefb342009a21d9a7) — Sepolia block 11642041 |
 | Mandate subgraph | [Studio v0.0.2](https://api.studio.thegraph.com/query/1758732/mandate-subgraph/v0.0.2), indexing live |
 | MCP server | [`/api/mcp`](https://mandate-rho.vercel.app/api/mcp) — public, no key needed |
-| Arc settlements | [`0x67b798d6…`](https://testnet.arcscan.app/tx/0x67b798d66f08a6ef45c09ae188be1aa0aba6a781b6380a1ee59382e55f076e8b) (0.25 USDC), [`0xfdefb2eb…`](https://testnet.arcscan.app/tx/0xfdefb2ebec3520250e7ec4adebdeb0239190514a324c13841e53df1b1651e025) (0.1 USDC) |
-| Reputation | 3 feedback entries on ERC-8004, written by a counterparty |
+| Arc settlements | **5** settlements · **$1.60** total, across all three allowed protocols — [full history ↗](https://testnet.arcscan.app/address/0xa0062C5066cF0B34010D7c4E90F68E4287D083a8) |
+| Reputation | 6 feedback entries on ERC-8004, written by a counterparty |
 
 ## Try it in two minutes, no wallet needed
 
