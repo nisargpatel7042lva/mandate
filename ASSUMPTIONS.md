@@ -37,6 +37,19 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
   in `src/instructions/TokenValidators.sol` — swap-vm's own `docs/PROGRAMS.md` calls
   this pattern an "institutional gate". MandateGate follows that shape instead.
 
+- `[RESOLVED]` **Trust model for `MandateGate`'s `agent`/`permissionMirror` arguments** —
+  audited deliberately before locking in the submission. Both are arguments baked into a
+  strategy's bytecode by the maker at ship time, immutable once shipped (Aqua enforces
+  `StrategiesMustBeImmutable`), never something a taker can alter — a taker can only
+  choose to fill an existing strategy or not. This is the same trust model every one of
+  swap-vm's own opcodes uses (`OnlyTakerTokenBalanceNonZero`'s `token` argument isn't
+  bound to anything either). MandateGate's real guarantee is narrower than "this can never
+  be misconfigured": it's "the shipped strategy checks whatever agent/mirror its maker
+  encoded." For the two strategies actually shipped in this repo's demo, both are verified
+  on-chain to reference the real agent (`0xa0062C50...`) and the real, already-deployed
+  PermissionMirror (`0x6f19dd6f...`) — decodable directly from the shipped calldata, not
+  asserted on trust.
+
 ## PermissionMirror (Sepolia)
 
 - `[RESOLVED]` Deployed at `0x6f19dd6f759fac8a19579ecdefb342009a21d9a7`, block
