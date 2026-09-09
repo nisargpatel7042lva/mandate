@@ -99,6 +99,7 @@ enforced independently, from their own records.
 | MCP server | [`/api/mcp`](https://mandate-rho.vercel.app/api/mcp) — public, no key needed |
 | Arc settlements | **5** settlements · **$1.60** total, across all three allowed protocols — [full history ↗](https://testnet.arcscan.app/address/0xa0062C5066cF0B34010D7c4E90F68E4287D083a8) |
 | Reputation | 6 feedback entries on ERC-8004, written by a counterparty |
+| MandateGate (1inch SwapVM) | [`0x9E1a0320…`](https://sepolia.etherscan.io/address/0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987) — approved fill [succeeded ↗](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508), blocked fill [reverted on-chain ↗](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283) |
 
 ## Try it in two minutes, no wallet needed
 
@@ -167,16 +168,30 @@ the underwriting decision rather than logged beside it: a denied trade never rea
 transfer. Each settlement record names the trust score, the specific checks that passed,
 and the ENS record the scope came from. Outcomes are written back to ERC-8004 reputation.
 
-**1inch — not submitted.** MandateGate as a custom SwapVM opcode was scoped as a stretch
-goal and is not built. Enforcement today is off-chain, and we say so rather than implying
-otherwise.
+**1inch — MandateGate, a custom SwapVM opcode.** Enforcement, inside the swap itself,
+not before it. `MandateGate` is a real opcode appended to `1inch/swap-vm`'s dispatcher
+(`AquaSwapVMRouter._runOpcode` is `internal virtual` for exactly this; MandateGate takes
+an unallocated slot in the vendored `Opcode` enum's own reserved bank — nothing in
+`swap-vm` or `aqua` is modified, both are pulled in as real dependencies). It reads the
+same live PermissionMirror Phase 1/5 already deployed, mid-execution. Two real Sepolia
+transactions prove both outcomes: an [approved fill that executed](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508)
+(Uniswap, in the agent's scope) and a [blocked fill that reverted on-chain](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283)
+(GMX perps, outside it — the same case the landing page's own blocked-demo preset uses).
+Proven with a real Aqua-backed SwapVM run loop first, locally
+([`test/MandateGateAqua.t.sol`](test/MandateGateAqua.t.sol), 4/4 passing), before spending
+real testnet gas. Not wired into the product's own Console/Execute flow, which still calls
+the off-chain `/api/check` path — MandateGate here is a standalone, live-testnet proof that
+the same decision enforces on-chain, not a UI feature yet.
 
 ## Honest limitations
 
-- **Enforcement is off-chain.** `composeRiskScore` runs server-side. The on-chain
-  MandateGate opcode (which would make it unbypassable inside the swap) is not built.
-  `PermissionMirror.isAuthorized()` is deployed and live, so the gate has a real call
-  target — but the gate itself is future work.
+- **The product's own trade flow is still off-chain enforcement.** `composeRiskScore`
+  runs server-side for the Console/Execute UI and MCP server. MandateGate — the on-chain
+  SwapVM opcode that makes enforcement unbypassable inside the swap itself — is real and
+  proven on two live Sepolia transactions (see Sponsor integrations above), but as a
+  standalone demo strategy, not wired into the app's own trade flow. Doing that would mean
+  routing the product's actual swaps through Aqua-backed SwapVM positions instead of the
+  direct protocol calls it uses today — a larger change than the timebox allowed.
 - **Our subgraph does not index settlements.** It indexes permission syncs only; Arc
   settlements are verifiable on ArcScan but do not flow back into the subgraph yet.
 - **Agent0 indexes Base Mainnet only.** Our Sepolia agent has no record there, so the
