@@ -10,8 +10,7 @@ import { PERMISSION_MIRROR_ADDRESS } from '@/lib/permission-mirror'
 import { usd, protocolLabel, shortAddr, EXPLORER } from '@/lib/format'
 import { PRESETS } from '@/lib/presets'
 import { TRUST_THRESHOLD } from '@/lib/underwriting'
-import { GateScene } from '@/components/viz/GateScene'
-import { HeroVideo } from '@/components/viz/HeroVideo'
+import { HeroBackdrop } from '@/components/viz/HeroBackdrop'
 import { Chip } from '@/components/ui/Chip'
 
 const SUBGRAPH_URL = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_URL ?? null
@@ -75,16 +74,11 @@ export default async function LandingPage() {
 
   return (
     <>
-      <div className="fixed inset-0 z-0" aria-hidden>
-        <GateScene allowed={data.allowedProtocols} />
-        <HeroVideo src="/hero-gate.mp4" />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,.82) 86%, #000 100%)' }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,.55) 0%, rgba(0,0,0,.35) 30%, rgba(0,0,0,0) 52%, rgba(0,0,0,0) 86%, rgba(0,0,0,.5) 100%)' }} />
-      </div>
-
-      {/* ── Hero ── one cinematic frame, but the page scrolls past it ── */}
-      <section className="relative z-10 flex min-h-[88dvh] flex-col">
-        <div className="flex flex-1 items-end px-6 pb-16 pt-2 sm:px-[72px] sm:pb-20 lg:px-24">
+      {/* ── Hero ── the backdrop is scoped to this section, not the viewport, so it
+          scrolls away with normal page flow instead of staying pinned forever. ── */}
+      <section className="relative z-10 flex min-h-[88dvh] flex-col overflow-hidden">
+        <HeroBackdrop allowed={data.allowedProtocols} />
+        <div className="relative flex flex-1 items-end px-6 pb-16 pt-2 sm:px-[72px] sm:pb-20 lg:px-24">
           <div className="flex w-full max-w-[720px] flex-col items-start text-left">
             <span className="badge appear appear--pop mb-[22px]" style={{ ['--d' as string]: '.22s' }}>
               <svg className="badge-star" width="18" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M12 2.6C12.55 2.6 12.88 3.15 13.08 4.7c.62 4.7 1.52 5.6 6.22 6.22 1.55.2 2.1.53 2.1 1.08s-.55.88-2.1 1.08c-4.7.62-5.6 1.52-6.22 6.22-.2 1.55-.53 2.1-1.08 2.1s-.88-.55-1.08-2.1c-.62-4.7-1.52-5.6-6.22-6.22C3.15 12.88 2.6 12.55 2.6 12s.55-.88 2.1-1.08c4.7-.62 5.6-1.52 6.22-6.22C11.12 3.15 11.45 2.6 12 2.6Z" /></svg>
