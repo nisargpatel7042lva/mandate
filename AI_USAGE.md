@@ -765,3 +765,43 @@ conversation switched the shared working tree to `main`; caught via `git status`
 reflog` before any file was touched and switched back to `ui-cinematic` with no work lost.
 
 **Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-09 | Correctness | ENS resolver bug found via the README's own instructions
+
+**Task:** Update the README's live-settlement numbers and confirm the Excalidraw diagram
+is represented accurately, then do a full accuracy pass since the user wants it "good and
+perfect" ahead of judging.
+
+**Claude Code was asked to:** update two numbers and check the diagram — the resolver bug
+below was not requested, it turned up while re-verifying the README's own claims before
+editing them.
+
+**What was found:** running `npm run read:identity` — the exact command the README tells
+a judge to run as proof "nothing is hard-coded" — printed `mandate.permissions` and
+`mandate.policy` as empty. The script defaulted to `ENS_PUBLIC_RESOLVER_SEPOLIA` when
+`ENS_RESOLVER_ADDRESS` was unset, which no `.env` in this repo ever set. That constant is
+the shared `DedicatedResolver` implementation contract, not the per-name proxy
+`set-permissions.ts` actually deploys and writes to; the implementation holds no data for
+any name. Every other read path (PermissionMirror, both subgraphs, the live app) was
+already reading the correct resolver and was unaffected — only this one script, and only
+the exact command the README points a judge at.
+
+**AI-generated:** `ENS_AGENT_RESOLVER_SEPOLIA` added to `scripts/lib/constants.ts` as the
+real default; `read-identity.ts` repointed at it; `ENS_RESOLVER_ADDRESS` documented in
+`.env.example` (it appeared nowhere before); `I-003` recorded in `ISSUES.md`; the README's
+"What is live right now" table updated from 2 Arc settlements / $0.35 / 3 reputation
+entries to 5 settlements / $1.60 / 6 entries, linking the full Arc address history instead
+of two cherry-picked tx links now that there's enough volume to show protocol diversity
+instead.
+
+**Human-directed:** the settlement transactions themselves were requested and executed in
+the prior turn; this turn's ask was the README update, which surfaced the bug.
+
+**Verified live:** re-ran `npm run read:identity` after the fix — it now prints the real
+`mandate.permissions` JSON and `mandate.policy` prose, matching what PermissionMirror and
+the subgraph have shown all along. `tsc -p tsconfig.scripts.json` and `eslint` both clean.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
