@@ -93,10 +93,16 @@ export function AuthorityMap({ allowed, trustScore, expiryFrac, authorized, ensN
     canvas.addEventListener('mouseleave', onLeave)
     canvas.addEventListener('click', onClick)
 
-    const rgba = (hex: string, a: number) => {
-      const n = parseInt(hex.replace('#', ''), 16)
-      return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
+    // Accepts #rgb, #rrggbb and rgb()/rgba() — the CSS minifier shortens hex, and hairline tokens are rgba.
+    const toRGB = (c: string): [number, number, number] => {
+      const m = c.match(/rgba?\(([^)]+)\)/)
+      if (m) { const [r, g, b] = m[1].split(/[,\s/]+/).map(Number); return [r, g, b] }
+      let h = c.replace('#', '')
+      if (h.length === 3) h = h.split('').map(ch => ch + ch).join('')
+      const n = parseInt(h, 16)
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
     }
+    const rgba = (c: string, a: number) => { const [r, g, b] = toRGB(c); return `rgba(${r},${g},${b},${a})` }
 
     const frame = (now: number) => {
       const dt = Math.min(50, now - last); last = now
@@ -265,8 +271,8 @@ export function AuthorityMap({ allowed, trustScore, expiryFrac, authorized, ensN
 
       if (!reduced) raf = requestAnimationFrame(frame)
     }
-    raf = requestAnimationFrame(frame)
-    if (reduced) { /* one static frame drawn above */ }
+    if (reduced) frame(performance.now()) // one still frame, painted synchronously
+    else raf = requestAnimationFrame(frame)
 
     return () => {
       cancelAnimationFrame(raf); ro.disconnect()

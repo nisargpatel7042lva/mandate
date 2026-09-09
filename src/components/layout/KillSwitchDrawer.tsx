@@ -33,11 +33,9 @@ export function KillSwitchDrawer() {
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <p className="text-[13px] leading-relaxed text-text-2">
-            Writes an expired scope to <span className="font-mono text-text">PermissionMirror</span> on Sepolia so
-            <span className="font-mono text-text"> isAuthorized()</span> returns false on the next block. Signed in your own wallet,
-            never by this server. Requires the relayer account.
+            Takes effect on the next Sepolia block. Requires the relayer account.
           </p>
-          <div className="mt-5">
+          <div className="mt-4">
             <KillSwitch agentAddress={LIVE_AGENT.address} />
           </div>
           <div className="mt-6 rounded-lg border border-line bg-bg-2 p-3 text-[11.5px] leading-relaxed text-text-3">

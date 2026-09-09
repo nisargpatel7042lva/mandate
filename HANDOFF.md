@@ -41,6 +41,8 @@ These are already set in Vercel. Ask if you want the Graph key rather than makin
 
 | Route | What it does | Key data source |
 |---|---|---|
+| `/` | Landing: one-frame cinematic hero (gate-of-light canvas driven by live scope), live stats row |
+| `/console` | Console: authority perimeter map, trust gauge, guardrails, ticker, quick simulator, on-chain feed |
 | `/execute` | Simulate: compose an attempt, watch the enforcement rail, verdict | `POST /api/check` → `composeRiskScore` live |
 | `/treasury` | Live Arc testnet balance + auth trail | `getArcBalance()` (viem), `fetchRecentUpdates()` |
 | `/dashboard` | Ledger: spend vs caps, policy matrix, unified event timeline, kill switch | `getAgentLiveData()`, `getArcSettlements()`, `fetchRecentUpdates()` |
@@ -168,7 +170,8 @@ npm run read:identity                   # full on-chain read-back
 
 ### Done (UI track, Phases 4 / 6 / 8)
 
-- **`/` — Overview**: authority perimeter map (canvas, driven by live scope), trust gauge, guardrails, ticker, one-click simulator, on-chain feed
+- **`/` — Landing**: single-viewport hero, gate-of-light canvas, live stats (trust, settled, syncs)
+- **`/console` — Console**: authority perimeter map (canvas, driven by live scope), trust gauge, guardrails, ticker, one-click simulator, on-chain feed
 - **`/dashboard` — Ledger**: spend vs caps, policy matrix, unified Arc + Sepolia event timeline, kill switch
 - **`/transactions/blocked` — Blocked TX**: live gmx-perp enforcement check, real reasons
 - **`/execute` — Execute**: interactive trade-attempt with animated underwriting steps;

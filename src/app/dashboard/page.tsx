@@ -35,7 +35,7 @@ export default async function LedgerPage() {
       <div className="reveal flex flex-wrap items-end justify-between gap-3" style={{ ['--i' as string]: 0 }}>
         <div>
           <div className="eyebrow">Ledger</div>
-          <h1 className="display mt-1 text-[34px] leading-none sm:text-[40px]">Every dollar, <em className="text-seal">every sync.</em></h1>
+          <h1 className="mt-1 text-[32px] font-medium leading-[1.05] tracking-[-0.04em] text-white sm:text-[40px]">Every dollar, <em className="display text-text-2">every sync.</em></h1>
         </div>
         <div className="flex items-center gap-2 text-[12px]">
           {data.fetchError ? <Chip tone="deny" dot>Subgraph error</Chip> : data.scopeFound ? <Chip tone="allow" live>Live</Chip> : <Chip tone="warn" dot>Syncing</Chip>}

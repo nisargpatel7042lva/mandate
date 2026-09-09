@@ -652,3 +652,116 @@ headless Chrome screenshots of every route at 1440px and 500px reviewed; `tsc` a
 `eslint` clean.
 
 **Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-08 | UI | Cinematic pass (branch `ui-cinematic`)
+
+**Task:** Bring the whole site to the quality of two reference specs the team supplied
+(black stage, silver type, one serif-italic accent, liquid-metal pills, masked line
+reveals, grain, no cards or glow), and add a one-frame landing. Prompt and both specs
+were pasted in chat; the design language is recorded in `src/app/globals.css`.
+
+**Claude Code was asked to:** make the entire website follow the reference quality so
+it does not read as generic AI output, keeping every live data source.
+
+**AI-generated:** `globals.css` rewritten (tokens, Inter + Instrument Serif italic,
+liquid-metal `.pill-nav`, liquid-glass `.btn` family, `.badge`, reference entrance
+keyframes, `@layer components`); `Header` (three-column grid, mobile menu), `Main`,
+`LockViewport`; `GateScene` canvas (gate of light in fog, attempts pass or die at the
+threshold, driven by the live allowlist); new `/` landing with live stats row; overview
+moved to `/console`; `Chip`, `Panel`, `Gauge`, `Stat` re-skinned; headings across
+screens changed to Inter medium with a serif-italic accent; `AuthorityMap` colour
+parser fixed for minified 3-digit hex and rgba tokens.
+
+**Human-directed / reviewed:** the two reference specs; "not another AI-generated
+website"; the KillSwitch fix in `6f36d0e` was made by a teammate and kept as is.
+
+**Verified live:** all six routes 200 on `next dev` with real data; headless Chrome
+screenshots at 1440 and 500 reviewed for every route; `tsc`, `eslint` and
+`next build` clean.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-08 | UI + correctness | Judge-readiness pass (branch `ui-cinematic`)
+
+**Task:** Fix inconsistent buttons, make the landing page scroll with real content
+below the fold, make navigation legible for a first-time visitor (a hackathon judge),
+and check the claim that "recent runs" and other numbers looked wrong.
+
+**Claude Code was asked to:** "check it out once" on the recent-runs/data-mismatch
+report rather than being handed a diagnosis — the investigation and the fix are both
+mine.
+
+**What was actually wrong, found by reading the code, not guessing:**
+1. `src/components/dashboard/KillSwitch.tsx` had been rewritten by a teammate
+   (`6f36d0e`) using `var(--border)` and `var(--surface)` plus raw `red-500`/`red-400`
+   Tailwind colors — tokens from the pre-redesign theme. `--border` was never defined
+   in the new design system (it's `--line`), so the panel's border silently dropped.
+   This is almost certainly what read as "buttons not matching."
+2. `/api/check` and `getBlockedScenario()` both called `composeRiskScore` with
+   `currentDailySpendUsdc: 0n` hardcoded, while the UI's own Pipeline component
+   labelled that step's source as "maxDailySpendUsdc · Arc settlements." The daily-cap
+   check was never actually live — it could only fail if a single trade alone exceeded
+   the cap. Fixed by fetching today's real settled total via `getArcSettlements` and
+   passing it through, in both call sites. Centralized the "spent since" math into
+   `sumSettledSince()` in `arc-data.ts` so it isn't hand-rolled per page again.
+
+**AI-generated:** `KillSwitch.tsx` rebuilt on `Panel`/`.btn`/`.btn-deny` (logic
+untouched); `Header.tsx` — nav is now contextual: in-page scroll-spy anchors (How it
+works / Live proof / Try it / FAQ) on the landing page, the four app routes elsewhere;
+new landing sections (`How it works`, `Live proof` strip of real on-chain addresses and
+links, `Try it` cards wired to the real simulator via `?preset=…&run=1`, `FAQ`, closing
+footer) with the viewport lock removed so the page scrolls; `PRESETS` moved out of the
+client-only `QuickSim` into `lib/presets.ts` so the landing (a server component) can
+use it without pulling in client code; `HeroVideo.tsx` — an optional video layer over
+the canvas gate that stays invisible until a file exists at `/hero-gate.mp4`, so
+dropping one in later requires no further code changes.
+
+**Human-directed / reviewed:** the three complaints in the user's message; the video
+itself, not yet supplied — a generation prompt was handed back for that.
+
+**Verified live:** `tsc`, `eslint`, `next build` all clean; `/api/check` daily-cap
+detail text now conditionally mentions today's spend; DOM-level check confirmed no
+duplicate content in any section (a screenshot artifact at extreme headless-Chrome
+viewport heights briefly looked like duplication — traced to the tooling, documented
+in memory, not a page bug). Full-page visual QA at every breakpoint was not completed
+this pass — the recommended next step is a manual pass in a real browser.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-09 | Brand | Seal mark and hero video
+
+**Task:** Wire the chosen logomark ("Seal," from the three concepts presented) into the
+app, and wire in a real hero video the user generated from the earlier prompt.
+
+**Claude Code was asked to:** implement the user's pick, not choose for them — direction
+was already decided in the prior turn's concept board.
+
+**AI-generated:** `BrandMark` in `Header.tsx` rebuilt as the seal (a disc masked by a
+vertical slit, `React.useId()`-scoped so the mask never collides if the mark is ever
+rendered twice on one page); `favicon.ico` replaced with `app/icon.svg` (same seal, on a
+solid black tile so it reads on any browser-chrome color) — Next's file-convention
+auto-detects `icon.svg` and serves it with no metadata config needed; the user's
+generated clip copied in at `public/hero-gate.mp4`, the exact path `HeroVideo.tsx` was
+already watching for, so no component code changed for the video to go live.
+
+**Human-directed:** the mark itself (picked from the three concepts) and the video
+(generated by the user from the prompt handed back in the prior turn).
+
+**Verified live:** `tsc`, `eslint`, `next build` clean; `/icon.svg` and `/hero-gate.mp4`
+both 200 from the dev server; screenshots confirm the video plays (two captures at
+different timestamps show different frames) and crops correctly into the landscape hero
+via `object-cover` — the source clip is vertical, so the crop naturally centers on the
+light beam, which is the intended composition. Mid-session, another live session of this
+conversation switched the shared working tree to `main`; caught via `git status`/`git
+reflog` before any file was touched and switched back to `ui-cinematic` with no work lost.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`

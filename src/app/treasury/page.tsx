@@ -31,7 +31,7 @@ export default async function TreasuryPage() {
       <div className="reveal flex flex-wrap items-end justify-between gap-3" style={{ ['--i' as string]: 0 }}>
         <div>
           <div className="eyebrow">Treasury</div>
-          <h1 className="display mt-1 text-[34px] leading-none sm:text-[40px]">Native USDC on Arc. <em className="text-chain">No approvals, no wrappers.</em></h1>
+          <h1 className="mt-1 text-[32px] font-medium leading-[1.05] tracking-[-0.04em] text-white sm:text-[40px]">Native USDC on Arc. <em className="display text-text-2">No approvals, no wrappers.</em></h1>
         </div>
         <div className="flex items-center gap-2 text-[12px]">
           {arc.fetchError ? <Chip tone="deny" dot>Arc RPC error</Chip> : <Chip tone="chain" live>Arc · block {arc.blockNumber.toLocaleString()}</Chip>}
@@ -41,9 +41,8 @@ export default async function TreasuryPage() {
 
       {/* Balance hero */}
       <section className="grid gap-4 lg:grid-cols-12">
-        <Panel className="reveal ticks relative overflow-hidden p-6 lg:col-span-7" style={{ ['--i' as string]: 1 }}>
-          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-chain/10 blur-3xl" />
-          <div className="eyebrow">Agent wallet · Arc testnet</div>
+        <Panel className="reveal relative overflow-hidden p-6 lg:col-span-7" style={{ ['--i' as string]: 1 }}>
+                    <div className="eyebrow">Agent wallet · Arc testnet</div>
           <div className="num mt-3 text-[64px] font-bold leading-none tracking-tight text-text sm:text-[80px]">
             <span className="text-text-3">$</span><CountUp value={arc.balanceUsdc} decimals={2} duration={1400} startFrom={0} />
           </div>
@@ -116,7 +115,7 @@ export default async function TreasuryPage() {
                   const ts = parseInt(u.blockTimestamp, 10)
                   return (
                     <li key={u.id} className="relative pb-5 last:pb-0 reveal" style={{ ['--i' as string]: i + 4 }}>
-                      <span className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-bg ${i === 0 ? 'bg-seal shadow-[0_0_10px_var(--seal)]' : 'bg-line-2'}`} />
+                      <span className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-bg ${i === 0 ? 'bg-white' : 'bg-line-2'}`} />
                       <div className="flex items-center gap-2"><span className="text-[13px] font-semibold text-text">Permission sync #{updates.length - i}</span>{i === 0 && <Chip tone="seal">current</Chip>}</div>
                       <div className="mt-0.5 font-mono text-[11px] text-text-3">block {parseInt(u.blockNumber, 10).toLocaleString()} · {ts ? fmtTs(ts, true) : '—'}</div>
                       <TxLink hash={u.transactionHash} chain="sepolia" />

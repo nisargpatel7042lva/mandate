@@ -26,13 +26,13 @@ export function Pipeline({ steps, states, compact = false, stagger = false }: {
               <span
                 className={`relative z-10 grid h-6 w-6 place-items-center rounded-full border text-[11px] font-bold transition-all duration-300 ${
                   st === 'pass' ? 'border-allow/60 bg-allow/15 text-allow' :
-                  st === 'fail' ? 'border-deny/60 bg-deny/15 text-deny shadow-[0_0_18px_-2px_var(--deny)]' :
-                  st === 'checking' ? 'border-seal/60 bg-seal/10 text-seal' :
+                  st === 'fail' ? 'border-deny/60 bg-deny/15 text-deny' :
+                  st === 'checking' ? 'border-white/60 bg-white/10 text-white' :
                   st === 'skip' ? 'border-line bg-bg-2 text-text-3' : 'border-line bg-bg-2 text-text-3'
                 }`}
                 style={st === 'pass' || st === 'fail' ? { animation: 'stamp .4s var(--ease-out-expo)' } : undefined}
               >
-                {st === 'checking' ? <span className="spin h-3 w-3 rounded-full border border-seal border-t-transparent" />
+                {st === 'checking' ? <span className="spin h-3 w-3 rounded-full border border-white/60 border-t-transparent" />
                   : st === 'pass' ? '✓' : st === 'fail' ? '✕' : st === 'skip' ? '–' : i + 1}
               </span>
               {!last && (
@@ -50,7 +50,7 @@ export function Pipeline({ steps, states, compact = false, stagger = false }: {
               {st !== 'idle' && st !== 'checking' && step.detail && step.detail !== '—' && (
                 <p className={`mt-0.5 font-mono text-[11.5px] fade-in ${st === 'fail' ? 'text-deny/90' : st === 'pass' ? 'text-allow/80' : 'text-text-3'}`}>{step.detail}</p>
               )}
-              {st === 'checking' && <p className="mt-0.5 font-mono text-[11.5px] text-seal/80">querying…</p>}
+              {st === 'checking' && <p className="mt-0.5 font-mono text-[11.5px] text-white/80">querying…</p>}
             </div>
           </li>
         )

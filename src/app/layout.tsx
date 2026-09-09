@@ -1,32 +1,31 @@
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
+import { Inter, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
 import { LiveProvider } from '@/components/live/LiveProvider'
 import { UiProvider } from '@/components/layout/UiProvider'
-import { CommandBar } from '@/components/layout/CommandBar'
+import { Header } from '@/components/layout/Header'
+import { Main } from '@/components/layout/Main'
 import { CommandPalette } from '@/components/layout/CommandPalette'
 import { KillSwitchDrawer } from '@/components/layout/KillSwitchDrawer'
 import './globals.css'
 
-const sans = Bricolage_Grotesque({ variable: '--font-sans-var', subsets: ['latin'] })
-const display = Instrument_Serif({ variable: '--font-display-var', subsets: ['latin'], weight: '400', style: ['normal', 'italic'] })
-const mono = JetBrains_Mono({ variable: '--font-mono-var', subsets: ['latin'] })
+const sans = Inter({ variable: '--font-sans-var', subsets: ['latin'], axes: ['opsz'] })
+const display = Instrument_Serif({ variable: '--font-display-var', subsets: ['latin'], weight: '400', style: 'italic' })
+const mono = JetBrains_Mono({ variable: '--font-mono-var', subsets: ['latin'], weight: ['400', '500'] })
 
 export const metadata: Metadata = {
-  title: 'Mandate — Agent Authority Enforcement',
-  description: 'On-chain permission enforcement for autonomous DeFi trading agents.',
+  title: 'Mandate — Authority for AI agents, enforced on-chain',
+  description: 'A DeFi agent whose limits live in ENS and a mirror contract, composed with live reputation at the moment of every trade.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
-      <body className="min-h-full">
-        <div className="atmosphere" aria-hidden />
+      <body className="min-h-full" style={{ background: '#000', color: '#fff' }}>
+        <div className="grain" aria-hidden />
         <LiveProvider initial={null}>
           <UiProvider>
-            <CommandBar />
-            <main className="mx-auto w-full max-w-[1440px] px-4 pb-20 pt-6 sm:px-6">
-              {children}
-            </main>
+            <Header />
+            <Main>{children}</Main>
             <CommandPalette />
             <KillSwitchDrawer />
           </UiProvider>

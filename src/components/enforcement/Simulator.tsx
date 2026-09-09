@@ -10,7 +10,7 @@ import { useLive } from '@/components/live/LiveProvider'
 import { useCheck } from './useCheck'
 import { runHistory } from './runHistory'
 import { Pipeline, EMPTY_STEPS } from './Pipeline'
-import { PRESETS } from './QuickSim'
+import { PRESETS } from '@/lib/presets'
 import { PROTOCOLS, protocolLabel, usd, relTime } from '@/lib/format'
 import { TRUST_THRESHOLD } from '@/lib/underwriting'
 
@@ -72,11 +72,11 @@ export function Simulator() {
       <div className="reveal flex flex-wrap items-end justify-between gap-3" style={{ ['--i' as string]: 0 }}>
         <div>
           <div className="eyebrow">Simulate</div>
-          <h1 className="display mt-1 text-[34px] leading-none sm:text-[40px]">Propose an attempt. <em className="text-seal">Watch it get underwritten.</em></h1>
+          <h1 className="mt-1 text-[32px] font-medium leading-[1.05] tracking-[-0.04em] text-white sm:text-[40px]">Propose an attempt. <em className="display text-text-2">Watch it get underwritten.</em></h1>
         </div>
         <div className="text-[12px] text-text-3">Presets:{' '}
           {PRESETS.map(p => (
-            <button key={p.id} onClick={() => { reset(); setProtocol(p.protocol); setAmount(p.amountUsdc) }} className="ml-1 rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-text-2 transition hover:border-seal hover:text-seal">{protocolLabel(p.protocol)} {usd(p.amountUsdc, { cents: false })}</button>
+            <button key={p.id} onClick={() => { reset(); setProtocol(p.protocol); setAmount(p.amountUsdc) }} className="ml-1 rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-text-2 transition hover:border-white/60 hover:text-white">{protocolLabel(p.protocol)} {usd(p.amountUsdc, { cents: false })}</button>
           ))}
         </div>
       </div>
@@ -84,7 +84,7 @@ export function Simulator() {
       <div className="grid gap-4 lg:grid-cols-12">
         {/* ── Compose ── */}
         <div className="reveal flex flex-col gap-4 lg:col-span-5" style={{ ['--i' as string]: 1 }}>
-          <div className="panel ticks p-4">
+          <div className="panel p-4">
             <div className="mb-3 flex items-center justify-between"><span className="eyebrow">Protocol</span><span className="text-[11px] text-text-3">{allowed.length ? `${allowed.length} in scope` : 'loading scope…'}</span></div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {PROTOCOLS.map(p => {
@@ -92,7 +92,7 @@ export function Simulator() {
                 const inScope = allowed.includes(p.id)
                 return (
                   <button key={p.id} onClick={() => { if (!isRunning) { reset(); setProtocol(p.id) } }}
-                    className={`group relative rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-seal bg-seal/5 shadow-[0_0_0_1px_var(--seal),0_0_24px_-8px_var(--seal)]' : 'border-line bg-bg-2 hover:border-line-2 hover:bg-surface-2'}`}>
+                    className={`group relative rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-white/60 bg-white/5' : 'border-line bg-bg-2 hover:border-line-2 hover:bg-surface-2'}`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[13px] font-semibold text-text">{p.short}</span>
                       <span className={`h-1.5 w-1.5 rounded-full ${a ? (inScope ? 'bg-allow' : 'bg-deny') : 'bg-text-3'}`} />
@@ -105,7 +105,7 @@ export function Simulator() {
             </div>
           </div>
 
-          <div className="panel ticks p-4">
+          <div className="panel p-4">
             <div className="mb-1 flex items-center justify-between"><span className="eyebrow">Amount · USDC</span>
               <span className="text-[11px] text-text-3">cap {usd(perTrade, { cents: false })} / trade · {usd(daily, { cents: false })} / day</span></div>
             <div className="num my-2 text-[40px] font-bold leading-none tracking-tight">
@@ -117,7 +117,7 @@ export function Simulator() {
                 className="slider" style={{ ['--slider-track' as string]: track }} aria-label="Amount in USDC" />
               {capPct !== null && (
                 <div className="pointer-events-none absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: `${capPct}%` }}>
-                  <span className="h-3 w-px bg-seal" /><span className="mt-6 whitespace-nowrap font-mono text-[9.5px] text-seal">per-trade cap</span>
+                  <span className="h-3 w-px bg-white" /><span className="mt-6 whitespace-nowrap font-mono text-[9.5px] text-white">per-trade cap</span>
                 </div>
               )}
               {dailyPct !== null && dailyPct < 100 && (
@@ -125,16 +125,16 @@ export function Simulator() {
                   <span className="h-3 w-px bg-deny" /><span className="mt-6 whitespace-nowrap font-mono text-[9.5px] text-deny">daily cap</span>
                 </div>
               )}
-              <div className="pointer-events-none absolute -bottom-1 left-0 h-1 rounded-full bg-seal/30" style={{ width: `${pct}%` }} />
+              <div className="pointer-events-none absolute -bottom-1 left-0 h-1 rounded-full bg-white/30" style={{ width: `${pct}%` }} />
             </div>
             <div className="mt-7 flex flex-wrap gap-1.5">
               {QUICK.map(q => (
                 <button key={q} disabled={isRunning} onClick={() => { reset(); setAmount(q) }}
-                  className={`rounded-md border px-2 py-1 font-mono text-[11px] transition ${amount === q ? 'border-seal text-seal' : 'border-line text-text-2 hover:border-line-2 hover:text-text'}`}>{usd(q, { compact: true })}</button>
+                  className={`rounded-md border px-2 py-1 font-mono text-[11px] transition ${amount === q ? 'border-white/60 text-white' : 'border-line text-text-2 hover:border-line-2 hover:text-text'}`}>{usd(q, { compact: true })}</button>
               ))}
               <input type="number" min={MIN} max={MAX} step={STEP} value={amount} disabled={isRunning}
                 onChange={e => { reset(); setAmount(Math.max(MIN, Math.min(MAX, Number(e.target.value) || MIN))) }}
-                className="ml-auto w-28 rounded-md border border-line bg-bg-2 px-2 py-1 text-right font-mono text-[12px] text-text outline-none focus:border-seal" aria-label="Exact amount" />
+                className="ml-auto w-28 rounded-md border border-line bg-bg-2 px-2 py-1 text-right font-mono text-[12px] text-text outline-none focus:border-white/60" aria-label="Exact amount" />
             </div>
           </div>
 
@@ -151,7 +151,7 @@ export function Simulator() {
                 ) : <div className="skeleton mt-1 h-4 w-48" />}
               </div>
               <button onClick={() => void run(protocol, amount)} disabled={isRunning} className="btn btn-seal shrink-0 !py-2.5 !px-4 text-[14px]">
-                {isRunning ? <><span className="spin inline-block h-3.5 w-3.5 rounded-full border-2 border-[#1a1200]/40 border-t-[#1a1200]" />Checking</> : <>Run check <span className="kbd !border-[#1a1200]/20 !bg-transparent !text-[#1a1200]/70">⌘↵</span></>}
+                {isRunning ? <><span className="spin inline-block h-3.5 w-3.5 rounded-full border-2 border-black/30 border-t-black" />Checking</> : <>Run check <span className="kbd !border-black/20 !bg-transparent !text-black/60">⌘↵</span></>}
               </button>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function Simulator() {
 
         {/* ── Enforcement rail ── */}
         <div className="reveal lg:col-span-7" style={{ ['--i' as string]: 2 }}>
-          <div className={`panel ticks flex min-h-[560px] flex-col p-5 transition-all duration-500 ${result ? (result.authorized ? 'panel-allow' : 'panel-deny') : ''}`}>
+          <div className={`panel flex min-h-[560px] flex-col p-5 transition-all duration-500 ${result ? (result.authorized ? 'panel-allow' : 'panel-deny') : ''}`}>
             <div className="flex items-center justify-between">
               <div>
                 <div className="eyebrow">Enforcement rail</div>
@@ -189,7 +189,7 @@ export function Simulator() {
                 </div>
               </div>
               <div className="text-right text-[11px] text-text-3">
-                {runState === 'calling' && <span className="flex items-center gap-1.5 text-seal"><span className="h-1.5 w-1.5 rounded-full bg-seal live-dot" />Mandate + Agent0 subgraphs</span>}
+                {runState === 'calling' && <span className="flex items-center gap-1.5 text-white"><span className="h-1.5 w-1.5 rounded-full bg-white live-dot" />Mandate + Agent0 subgraphs</span>}
                 {result && <span className="num">{result.latencyMs}ms round-trip</span>}
                 {runState === 'idle' && !error && <span>idle</span>}
               </div>
@@ -207,7 +207,7 @@ export function Simulator() {
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
                     <div className={`eyebrow ${result.authorized ? 'text-allow' : 'text-deny'}`}>{result.authorized ? 'Verdict · clears MandateGate' : 'Verdict · MandateGate reverts'}</div>
-                    <div className={`display mt-1 text-[44px] leading-none ${result.authorized ? 'text-allow text-glow-allow' : 'text-deny text-glow-deny'}`}>{result.authorized ? 'Authorized.' : 'Blocked.'}</div>
+                    <div className={`mt-1 text-[40px] font-medium leading-none tracking-[-0.04em] ${result.authorized ? 'text-white' : 'text-deny'}`}>{result.authorized ? <>Authorized<em className="display text-text-2">.</em></> : <>Blocked<em className="display">.</em></>}</div>
                     <p className="mt-2 max-w-md text-[13px] text-text-2">{result.primaryBlock ?? `All five checks passed. Trust ${result.trustScore.toFixed(1)} against threshold ${TRUST_THRESHOLD}; scope, protocol, size and daily cap all within bounds.`}</p>
                     {result.primaryBlockDetail && <p className="mt-1 font-mono text-[11px] text-text-3">{result.primaryBlockDetail}</p>}
                   </div>

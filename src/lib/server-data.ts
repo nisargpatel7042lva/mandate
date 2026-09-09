@@ -4,6 +4,7 @@
 
 import { composeRiskScore, PROTOCOL_BITS } from './underwriting'
 import { fetchAgentScope } from './mandate-subgraph'
+import { getArcSettlements, sumSettledSince } from './arc-data'
 
 // ── Live agent constants (verified on-chain 2026-09-06) ──────────────────────
 export const LIVE_AGENT = {
@@ -137,10 +138,13 @@ export async function getBlockedScenario(): Promise<BlockedScenario> {
   const amountUsdc = 5_000_000_000n  // 5,000 USDC in 6-decimal
 
   try {
+    const nowS = Math.floor(Date.now() / 1000)
+    const settlementsData = await getArcSettlements(LIVE_AGENT.address).catch(() => ({ settlements: [], fetchError: 'unreachable' }))
+    const spentTodayUsdc = sumSettledSince(settlementsData.settlements, nowS - 86400)
     const result = await composeRiskScore(LIVE_AGENT.address, {
       protocol,
       amountUsdc,
-      currentDailySpendUsdc: 0n,
+      currentDailySpendUsdc: BigInt(Math.round(spentTodayUsdc * 1_000_000)),
     })
     return {
       protocol,

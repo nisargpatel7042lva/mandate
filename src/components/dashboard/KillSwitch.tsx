@@ -13,6 +13,8 @@ import {
   SEPOLIA_CHAIN_ID_HEX,
   revokedScope,
 } from '@/lib/permission-mirror'
+import { Panel } from '@/components/ui/Panel'
+import { TxLink } from '@/components/ui/TxLink'
 
 type State = 'idle' | 'confirm' | 'revoking' | 'revoked' | 'error'
 
@@ -117,93 +119,61 @@ export function KillSwitch({ agentAddress }: { agentAddress: string }) {
 
   if (state === 'revoked') {
     return (
-      <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+      <Panel tone="deny" className="p-4 stamp">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-400">✕</div>
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-deny/15 text-deny">✕</div>
           <div>
-            <p className="text-sm font-semibold text-red-400">Authority revoked</p>
-            <p className="text-xs text-[var(--text-3)]">Scope expiry set to the past · agent cannot execute</p>
+            <p className="text-[13.5px] font-medium text-deny">Authority revoked</p>
+            <p className="text-[11.5px] text-text-3">Scope expiry set to the past · agent cannot execute</p>
           </div>
         </div>
-        {txHash && (
-          <a
-            href={`https://sepolia.etherscan.io/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 block font-mono text-[10px] text-sky-400 hover:underline"
-          >
-            {txHash.slice(0, 12)}…{txHash.slice(-8)} ↗
-          </a>
-        )}
-        <button
-          onClick={() => { setState('idle'); setTxHash(null) }}
-          className="mt-3 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-2)] transition hover:bg-[var(--surface-2)]"
-        >
+        {txHash && <div className="mt-3"><TxLink hash={txHash} chain="sepolia" head={12} tail={8} /></div>}
+        <button onClick={() => { setState('idle'); setTxHash(null) }} className="btn btn-ghost mt-3 !h-8 !px-2 text-[11.5px]">
           Reset view
         </button>
-      </div>
+      </Panel>
     )
   }
 
   if (state === 'error') {
     return (
-      <div className="rounded-xl border border-red-500/20 bg-[var(--surface)] p-4">
-        <p className="text-sm font-semibold text-red-400">Revocation not completed</p>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--text-2)]">{errorMsg}</p>
-        <button
-          onClick={() => setState('idle')}
-          className="mt-3 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-2)] transition hover:bg-[var(--surface-2)]"
-        >
-          Back
-        </button>
-      </div>
+      <Panel className="p-4">
+        <p className="text-[13.5px] font-medium text-deny">Revocation not completed</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-text-2">{errorMsg}</p>
+        <button onClick={() => setState('idle')} className="btn mt-3 !h-8 text-[11.5px]">Back</button>
+      </Panel>
     )
   }
 
   if (state === 'confirm') {
     return (
-      <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-        <p className="text-sm font-semibold text-red-400">Confirm revocation</p>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--text-2)]">
-          You will sign a <span className="font-mono text-[var(--text)]">sync()</span> call in your wallet on Sepolia.
+      <Panel tone="deny" className="p-4">
+        <p className="text-[13.5px] font-medium text-deny">Confirm revocation</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-text-2">
+          You will sign a <span className="hash text-text">sync()</span> call in your wallet on Sepolia.
           Only the relayer account can do this.
         </p>
         <div className="mt-4 flex gap-2">
-          <button
-            onClick={handleRevoke}
-            className="rounded-lg bg-red-500/15 px-4 py-2 text-xs font-semibold text-red-400 ring-1 ring-inset ring-red-500/25 transition hover:bg-red-500/25"
-          >
-            Sign &amp; revoke
-          </button>
-          <button
-            onClick={() => setState('idle')}
-            className="rounded-lg border border-[var(--border)] px-4 py-2 text-xs text-[var(--text-2)] transition hover:bg-[var(--surface-2)]"
-          >
-            Cancel
-          </button>
+          <button onClick={handleRevoke} className="btn btn-deny">Sign &amp; revoke</button>
+          <button onClick={() => setState('idle')} className="btn btn-ghost">Cancel</button>
         </div>
-      </div>
+      </Panel>
     )
   }
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+    <Panel className="p-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[var(--text)]">Kill Switch</p>
-          <p className="mt-0.5 text-xs text-[var(--text-3)]">
-            Writes an expired scope to PermissionMirror on Sepolia.
-            Signed in your own wallet — never by this server.
+          <p className="text-[13.5px] font-medium text-white">Kill switch</p>
+          <p className="mt-0.5 text-[11.5px] text-text-3">
+            Writes an expired scope to PermissionMirror. Signed in your own wallet — never by this server.
           </p>
         </div>
-        <button
-          onClick={() => setState('confirm')}
-          disabled={state === 'revoking'}
-          className="shrink-0 rounded-lg bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-400 ring-1 ring-inset ring-red-500/20 transition hover:bg-red-500/20 disabled:opacity-50"
-        >
+        <button onClick={() => setState('confirm')} disabled={state === 'revoking'} className="btn btn-deny shrink-0">
           {state === 'revoking' ? (
             <span className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 animate-spin rounded-full border border-red-400 border-t-transparent" />
+              <span className="spin inline-block h-3 w-3 rounded-full border border-deny border-t-transparent" />
               Awaiting signature…
             </span>
           ) : (
@@ -211,6 +181,6 @@ export function KillSwitch({ agentAddress }: { agentAddress: string }) {
           )}
         </button>
       </div>
-    </div>
+    </Panel>
   )
 }
