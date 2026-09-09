@@ -21,13 +21,30 @@ export function LiveProvider({ initial, intervalMs = 30_000, children }: { initi
   const [refreshing, setRefreshing] = useState(false)
   const inflight = useRef<AbortController | null>(null)
 
+  /**
+   * The agent currently being viewed, read from the URL at poll time.
+   *
+   * Deliberately not `useSearchParams`: this provider wraps every route from the
+   * layout, and several of them are statically prerendered. Calling that hook here
+   * would need a Suspense boundary around the whole tree or the production build
+   * fails. This runs only inside the polling effect, after hydration, so it never
+   * interacts with prerendering.
+   */
+  function currentAgent(): string | null {
+    if (typeof window === 'undefined') return null
+    const raw = new URLSearchParams(window.location.search).get('agent')?.trim()
+    return raw && /^0x[0-9a-fA-F]{40}$/.test(raw) ? raw : null
+  }
+
   async function refresh() {
     inflight.current?.abort()
     const ac = new AbortController()
     inflight.current = ac
     setRefreshing(true)
     try {
-      const res = await fetch('/api/live', { signal: ac.signal, cache: 'no-store' })
+      const agent = currentAgent()
+      const url = agent ? `/api/live?agent=${agent}` : '/api/live'
+      const res = await fetch(url, { signal: ac.signal, cache: 'no-store' })
       if (res.ok) {
         const next = await res.json() as LiveSnapshot
         setSnap(prev => {

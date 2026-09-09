@@ -4,7 +4,8 @@ import { useLive } from './LiveProvider'
 import { untilExpiry, usd } from '@/lib/format'
 import { LIVE_AGENT } from '@/lib/server-data'
 
-export function Ticker() {
+/** `agentLabel`/`agentId` follow the agent being viewed; unset means the demo agent. */
+export function Ticker({ agentLabel, agentId }: { agentLabel?: string; agentId?: string } = {}) {
   const { snap } = useLive()
   const a = snap?.agent
   const items: Array<[string, string, 'seal' | 'allow' | 'chain' | 'deny' | 'plain']> = [
@@ -17,8 +18,8 @@ export function Ticker() {
     ['SPENT 24H', snap ? usd(snap.spentTodayUsdc, { cents: true }) : '…', 'plain'],
     ['SETTLEMENTS', snap ? String(snap.settlements.length) : '…', 'allow'],
     ['SYNCS', a?.syncCount != null ? String(a.syncCount) : '…', 'chain'],
-    ['AGENT', LIVE_AGENT.ensName, 'seal'],
-    ['ERC-8004', `#${LIVE_AGENT.agentId}`, 'plain'],
+    ['AGENT', agentLabel ?? LIVE_AGENT.ensName, 'seal'],
+    ['ERC-8004', agentId ? `#${agentId}` : (agentLabel ? '—' : `#${LIVE_AGENT.agentId}`), 'plain'],
     ['STATUS', a ? (a.authorized ? 'AUTHORIZED' : 'REVOKED') : '…', a ? (a.authorized ? 'allow' : 'deny') : 'plain'],
   ]
   const tone = { seal: 'text-white', allow: 'text-allow', chain: 'text-chain', deny: 'text-deny', plain: 'text-text' }

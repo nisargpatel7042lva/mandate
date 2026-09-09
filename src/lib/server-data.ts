@@ -2,6 +2,7 @@
 // Call getAgentLiveData() from async server components — it returns plain
 // serialisable values (no BigInts) so RSC serialisation never throws.
 
+import { isAddress, getAddress } from 'viem'
 import { composeRiskScore, PROTOCOL_BITS } from './underwriting'
 import { fetchAgentScope } from './mandate-subgraph'
 import { getArcSettlements, sumSettledSince } from './arc-data'
@@ -14,6 +15,30 @@ export const LIVE_AGENT = {
   ownerAddress: '0xa0062C5066cF0B34010D7c4E90F68E4287D083a8' as const,
   tokenUri:     'https://raw.githubusercontent.com/nisargpatel7042lva/mandate/main/public/agent-registration.json',
   tier:         'autonomous' as const,
+}
+
+/**
+ * Resolve which agent a screen should show.
+ *
+ * Ownership is per-wallet on-chain — the ERC-8004 identity, the ENSv2 subname and
+ * the resolver all belong to whoever signed for them — so nothing about the data
+ * layer is specific to the demo agent. It is only the default when no agent is
+ * named. Anything onboarded through `npm run onboard` can be viewed by address.
+ *
+ * Returns null for input that is not an address, so a bad query string renders an
+ * empty state rather than being passed to a contract call.
+ */
+export function resolveAgentAddress(input?: string | string[] | null): string | null {
+  if (input === undefined || input === null) return LIVE_AGENT.address
+  const raw = (Array.isArray(input) ? input[0] : input)?.trim()
+  if (!raw) return LIVE_AGENT.address
+  if (!isAddress(raw)) return null
+  return getAddress(raw)
+}
+
+/** True when the address being viewed is the built-in demo agent. */
+export function isDemoAgent(address: string): boolean {
+  return address.toLowerCase() === LIVE_AGENT.address.toLowerCase()
 }
 
 // ── Decoders ────────────────────────────────────────────────────────────────
@@ -75,11 +100,14 @@ export interface AgentLiveData {
 
 // ── Fetch ────────────────────────────────────────────────────────────────────
 
-export async function getAgentLiveData(): Promise<AgentLiveData> {
+export async function getAgentLiveData(
+  /** Defaults to the demo agent so existing callers are unchanged. */
+  agentAddress: string = LIVE_AGENT.address,
+): Promise<AgentLiveData> {
   try {
     const [result, scope] = await Promise.all([
-      composeRiskScore(LIVE_AGENT.address),
-      fetchAgentScope(LIVE_AGENT.address).catch(() => null),
+      composeRiskScore(agentAddress),
+      fetchAgentScope(agentAddress).catch(() => null),
     ])
 
     return {

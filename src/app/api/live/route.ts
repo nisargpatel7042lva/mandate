@@ -3,16 +3,21 @@
 // Agent0 (reputation via composeRiskScore). No writes, no keys.
 
 import { getArcBalance, getArcSettlements } from '@/lib/arc-data'
-import { getAgentLiveData, LIVE_AGENT } from '@/lib/server-data'
+import { getAgentLiveData, LIVE_AGENT, resolveAgentAddress } from '@/lib/server-data'
 import { fetchRecentUpdates } from '@/lib/mandate-subgraph'
 import type { LiveSnapshot, LiveEvent } from '@/lib/live'
 
-export async function GET(): Promise<Response> {
+export async function GET(req: Request): Promise<Response> {
+  // Mirrors the console: ?agent=0x… views any onboarded agent, default is the demo one.
+  // An invalid address falls back rather than reaching a contract call.
+  const agentAddress =
+    resolveAgentAddress(new URL(req.url).searchParams.get('agent')) ?? LIVE_AGENT.address
+
   const [arc, agent, settlementsData, updates] = await Promise.all([
-    getArcBalance(LIVE_AGENT.address),
-    getAgentLiveData(),
-    getArcSettlements(LIVE_AGENT.address),
-    fetchRecentUpdates(LIVE_AGENT.address).catch(() => []),
+    getArcBalance(agentAddress),
+    getAgentLiveData(agentAddress),
+    getArcSettlements(agentAddress),
+    fetchRecentUpdates(agentAddress).catch(() => []),
   ])
 
   const nowS = Math.floor(Date.now() / 1000)

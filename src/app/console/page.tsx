@@ -2,7 +2,7 @@
 // a one-click simulator, and the unified on-chain feed.
 
 import Link from 'next/link'
-import { LIVE_AGENT, getAgentLiveData } from '@/lib/server-data'
+import { LIVE_AGENT, getAgentLiveData, resolveAgentAddress, isDemoAgent } from '@/lib/server-data'
 import { getArcBalance, getArcSettlements } from '@/lib/arc-data'
 import { fetchRecentUpdates } from '@/lib/mandate-subgraph'
 import type { LiveEvent } from '@/lib/live'
@@ -18,13 +18,40 @@ import { MapPanel } from '@/components/viz/MapPanel'
 
 const SCOPE_WINDOW_S = 30 * 86400 // relayer syncs a 30-day scope
 
-export default async function ConsolePage() {
+/**
+ * `?agent=0x…` views any onboarded agent; omitted, it shows the demo agent.
+ * searchParams is a Promise in this version of Next and must be awaited.
+ */
+export default async function ConsolePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const agentAddress = resolveAgentAddress((await searchParams).agent)
+
+  if (!agentAddress) {
+    return (
+      <div className="mx-auto max-w-2xl px-5 py-16">
+        <div className="eyebrow text-warn">Unrecognised agent</div>
+        <h1 className="mt-2 text-xl font-semibold">That is not a valid address</h1>
+        <p className="mt-2 text-[13px] leading-relaxed text-text-2">
+          The <span className="font-mono">agent</span> parameter must be a 20-byte hex
+          address. Onboard one with{' '}
+          <span className="font-mono text-text-3">npm run onboard -- &lt;label&gt;</span>, or
+          view the demo agent.
+        </p>
+        <Link href="/console" className="btn mt-5 inline-flex">View the demo agent</Link>
+      </div>
+    )
+  }
+
   const [data, arc, settlementsData, updates] = await Promise.all([
-    getAgentLiveData(),
-    getArcBalance(LIVE_AGENT.address),
-    getArcSettlements(LIVE_AGENT.address),
-    fetchRecentUpdates(LIVE_AGENT.address).catch(() => []),
+    getAgentLiveData(agentAddress),
+    getArcBalance(agentAddress),
+    getArcSettlements(agentAddress),
+    fetchRecentUpdates(agentAddress).catch(() => []),
   ])
+  const viewingDemo = isDemoAgent(agentAddress)
   const nowS = nowSeconds()
   const exp = untilExpiry(data.scopeExpiry)
   const expiryFrac = data.scopeExpiry ? Math.max(0, Math.min(1, (data.scopeExpiry - nowS) / SCOPE_WINDOW_S)) : 0
@@ -48,8 +75,14 @@ export default async function ConsolePage() {
         {status === 'syncing' && <Chip tone="warn" dot>Subgraph syncing · scope not indexed yet</Chip>}
         {status === 'authorized' && <Chip tone="allow" live>Live</Chip>}
         {status === 'revoked' && <Chip tone="deny" dot>Authority revoked</Chip>}
-        <span className="text-text-3">ENS <span className="font-mono text-text-2">{LIVE_AGENT.ensName}</span></span>
-        <span className="text-text-3">· ERC-8004 <span className="font-mono text-text-2">#{LIVE_AGENT.agentId}</span></span>
+        <span className="text-text-3">
+          {viewingDemo
+            ? <>ENS <span className="font-mono text-text-2">{LIVE_AGENT.ensName}</span></>
+            : <>Agent <span className="font-mono text-text-2">{shortAddr(agentAddress, 10, 6)}</span></>}
+        </span>
+        {viewingDemo && (
+          <span className="text-text-3">· ERC-8004 <span className="font-mono text-text-2">#{LIVE_AGENT.agentId}</span></span>
+        )}
         <span className="text-text-3">· Mandate subgraph v0.0.2 · Agent0 (Base)</span>
       </div>
 
@@ -85,7 +118,7 @@ export default async function ConsolePage() {
 
         {/* Map */}
         <div className="reveal lg:col-span-5" style={{ ['--i' as string]: 2 }}>
-          <MapPanel allowed={data.allowedProtocols} trustScore={data.trustScore} expiryFrac={expiryFrac} authorized={status === 'authorized'} ensName={LIVE_AGENT.ensName} />
+          <MapPanel allowed={data.allowedProtocols} trustScore={data.trustScore} expiryFrac={expiryFrac} authorized={status === 'authorized'} ensName={viewingDemo ? LIVE_AGENT.ensName : shortAddr(agentAddress, 6, 4)} />
         </div>
 
         {/* Guardrails */}
@@ -111,7 +144,7 @@ export default async function ConsolePage() {
         </div>
       </section>
 
-      <div className="reveal -mx-4 min-w-0 overflow-hidden sm:-mx-6" style={{ ['--i' as string]: 4 }}><Ticker /></div>
+      <div className="reveal -mx-4 min-w-0 overflow-hidden sm:-mx-6" style={{ ['--i' as string]: 4 }}><Ticker agentLabel={viewingDemo ? undefined : shortAddr(agentAddress, 6, 4)} /></div>
 
       {/* ── Quick simulate ── */}
       <section className="reveal" style={{ ['--i' as string]: 5 }}>
@@ -150,8 +183,8 @@ export default async function ConsolePage() {
             <PanelHead title="Identity" />
             <dl className="grid grid-cols-1 gap-x-4 gap-y-2.5 p-4 text-[12px] sm:grid-cols-2">
               {[
-                ['Agent wallet', <a key="w" className="font-mono text-text-2 hover:text-chain" href={EXPLORER.sepoliaAddr(LIVE_AGENT.address)} target="_blank" rel="noopener noreferrer">{shortAddr(LIVE_AGENT.address, 10, 6)}</a>],
-                ['Owner', <span key="o" className="font-mono text-text-2">{shortAddr(LIVE_AGENT.ownerAddress, 10, 6)}</span>],
+                ['Agent wallet', <a key="w" className="font-mono text-text-2 hover:text-chain" href={EXPLORER.sepoliaAddr(agentAddress)} target="_blank" rel="noopener noreferrer">{shortAddr(agentAddress, 10, 6)}</a>],
+                ['Owner', <span key="o" className="font-mono text-text-2">{shortAddr(agentAddress, 10, 6)}</span>],
                 ['ENS node', <span key="n" className="font-mono text-text-2">{data.ensNode ? shortAddr(data.ensNode, 10, 6) : '—'}</span>],
                 ['Last sync', <span key="s" className="font-mono text-text-2">{data.lastSyncedAt ? new Date(data.lastSyncedAt * 1000).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}</span>],
                 ['Tier', <Chip key="t" tone="seal">AUTONOMOUS</Chip>],
