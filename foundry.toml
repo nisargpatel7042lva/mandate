@@ -13,3 +13,14 @@ remappings = [
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
     "forge-std/=node_modules/forge-std/src/",
 ]
+
+# PermissionMirror was deployed in Phase 1, before Phase 7's swap-vm/aqua dependencies
+# needed via_ir + a higher optimizer-runs count. Kept as its own profile so Sourcify
+# verification recompiles it with the exact settings it was actually deployed under.
+[profile.permission-mirror]
+src = "contracts"
+out = "out"
+solc_version = "0.8.30"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
