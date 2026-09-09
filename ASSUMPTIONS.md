@@ -10,10 +10,12 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
 - `[RESOLVED]` ENSv2 EAC is not used — permissions are standard `setText` records,
   written and read back live. See the ENSv2 Sepolia section below.
 
-- `[UNVERIFIED]` Aqua contract is not yet deployed on Sepolia by 1inch —
-  we plan to self-deploy per `1inch/aqua` DEPLOY.md. Need to confirm `chain-11155111.json`
-  parameter file exists in the repo and that the Aqua address can be set to our own deployment.
-  **Blocking: Phase 2 (SwapVM router deployment).**
+- `[RESOLVED]` Aqua is not deployed on Sepolia by 1inch, and there is no
+  `chain-11155111.json` (that filename was a guess, not something the deploy tooling
+  actually uses) — `1inch/aqua`'s real deploy path is a generic `make deploy-aqua-router`
+  driven by `.env` (`OPS_NETWORK`, `OPS_CHAIN_ID`, `<NETWORK>_RPC_URL`/`_PRIVATE_KEY`),
+  deploying `AquaRouter(owner)`. Self-deployed live on Sepolia at
+  `0x7a8Fbe264cCedc85FA9C5Dc89e5f63BBD900cEd5` (see Phase 7 below).
 
 - `[RESOLVED]` Cross-chain PermissionMirror not needed for Phase 1 prototype —
   both ENSv2 and our planned SwapVM router are on Sepolia. PermissionMirror.sol is kept
@@ -22,11 +24,31 @@ the phase that depends on it ships. Format: `[STATUS] Item — what needs verify
 
 ## SwapVM Opcodes
 
-- `[UNVERIFIED]` Custom opcode registration pattern —
-  README shows `_instructions()` returning a function array, but `src/opcodes/Opcodes.sol`
-  uses an if-else `_runOpcode` dispatcher. Need to read `src/SwapVM.sol` to confirm which
-  virtual function MandateGate must override.
-  **Blocking: Phase 2 (MandateGate implementation).**
+- `[RESOLVED]` Custom opcode registration pattern — confirmed by reading the real
+  `1inch/swap-vm` source (cloned and inspected directly, not assumed): `AquaOpcodes._runOpcode`
+  is `internal virtual`, exactly so a router can override it, handle new opcodes, and
+  fall through to `super._runOpcode` for everything that already exists — see
+  `MandateSwapVMRouter.sol`. Opcode slot: `0x27`, an unallocated `_27` in swap-vm's
+  own `Opcode` enum's "Conditions & access guards" bank — used as a raw `uint8`
+  constant, without editing the vendored enum.
+- Note: the phase prompt's cited precedent, "Turing Swap's `_humanGate`", does not
+  exist anywhere in either `1inch/swap-vm` or `1inch/aqua` (checked by grepping both
+  cloned repos). The real, documented precedent is `OnlyTakerTokenBalanceNonZero`
+  in `src/instructions/TokenValidators.sol` — swap-vm's own `docs/PROGRAMS.md` calls
+  this pattern an "institutional gate". MandateGate follows that shape instead.
+
+- `[RESOLVED]` **Trust model for `MandateGate`'s `agent`/`permissionMirror` arguments** —
+  audited deliberately before locking in the submission. Both are arguments baked into a
+  strategy's bytecode by the maker at ship time, immutable once shipped (Aqua enforces
+  `StrategiesMustBeImmutable`), never something a taker can alter — a taker can only
+  choose to fill an existing strategy or not. This is the same trust model every one of
+  swap-vm's own opcodes uses (`OnlyTakerTokenBalanceNonZero`'s `token` argument isn't
+  bound to anything either). MandateGate's real guarantee is narrower than "this can never
+  be misconfigured": it's "the shipped strategy checks whatever agent/mirror its maker
+  encoded." For the two strategies actually shipped in this repo's demo, both are verified
+  on-chain to reference the real agent (`0xa0062C50...`) and the real, already-deployed
+  PermissionMirror (`0x6f19dd6f...`) — decodable directly from the shipped calldata, not
+  asserted on trust.
 
 ## PermissionMirror (Sepolia)
 

@@ -15,7 +15,7 @@ import { sepolia } from 'viem/chains'
 import {
   ERC8004_IDENTITY_REGISTRY,
   ERC8004_REPUTATION_REGISTRY,
-  ENS_PUBLIC_RESOLVER_SEPOLIA,
+  ENS_AGENT_RESOLVER_SEPOLIA,
   IDENTITY_REGISTRY_ABI,
   PUBLIC_RESOLVER_ABI,
   MANDATE_PERMISSIONS_KEY,
@@ -27,9 +27,11 @@ import { getRpcUrl, optionalEnv } from './lib/config.js'
 const AGENT_ID = BigInt(optionalEnv('AGENT_ID', '1'))
 const ENS_NAME = optionalEnv('ENS_NAME', 'testagent.mandate.eth')
 
-// ENSv2 resolvers are per-name. ENS_RESOLVER_ADDRESS is the instance deployed
-// for this name by set-permissions.ts; the constant is only the implementation.
-const RESOLVER = optionalEnv('ENS_RESOLVER_ADDRESS', ENS_PUBLIC_RESOLVER_SEPOLIA) as `0x${string}`
+// ENSv2 resolvers are per-name. ENS_RESOLVER_ADDRESS overrides for a different
+// agent; the default is the live proxy set-permissions.ts deployed for
+// testagent.mandate.eth. (Not ENS_PUBLIC_RESOLVER_SEPOLIA — that constant is
+// the shared implementation contract, which holds no data for any name.)
+const RESOLVER = optionalEnv('ENS_RESOLVER_ADDRESS', ENS_AGENT_RESOLVER_SEPOLIA) as `0x${string}`
 
 const publicClient = createPublicClient({
   chain: sepolia,

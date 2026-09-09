@@ -54,6 +54,14 @@ export const ENS_DEDICATED_RESOLVER_IMPL_SEPOLIA =
 /** @deprecated alias kept for older scripts; same implementation address. */
 export const ENS_PUBLIC_RESOLVER_SEPOLIA = ENS_DEDICATED_RESOLVER_IMPL_SEPOLIA
 
+// The actual per-name DedicatedResolver proxy deployed for testagent.mandate.eth by
+// set-permissions.ts — this is the instance that holds mandate.permissions /
+// mandate.policy. The implementation address above holds nothing for any name; a
+// script that defaults to it instead of this one will silently read back empty
+// records. Verified against ARCHITECTURE.md ("Agent resolver") 2026-09-09.
+export const ENS_AGENT_RESOLVER_SEPOLIA =
+  '0x47199acbb8cf8766c67a4853574e945c8e795005' as const
+
 // The .eth registry that actually holds 2LD ownership on Sepolia. Identified
 // from the register() receipt: it minted the ERC-1155 for mandate.eth to us.
 // ENSv2 token id = labelhash with the low 32 bits cleared.

@@ -765,3 +765,139 @@ conversation switched the shared working tree to `main`; caught via `git status`
 reflog` before any file was touched and switched back to `ui-cinematic` with no work lost.
 
 **Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-09 | Correctness | ENS resolver bug found via the README's own instructions
+
+**Task:** Update the README's live-settlement numbers and confirm the Excalidraw diagram
+is represented accurately, then do a full accuracy pass since the user wants it "good and
+perfect" ahead of judging.
+
+**Claude Code was asked to:** update two numbers and check the diagram — the resolver bug
+below was not requested, it turned up while re-verifying the README's own claims before
+editing them.
+
+**What was found:** running `npm run read:identity` — the exact command the README tells
+a judge to run as proof "nothing is hard-coded" — printed `mandate.permissions` and
+`mandate.policy` as empty. The script defaulted to `ENS_PUBLIC_RESOLVER_SEPOLIA` when
+`ENS_RESOLVER_ADDRESS` was unset, which no `.env` in this repo ever set. That constant is
+the shared `DedicatedResolver` implementation contract, not the per-name proxy
+`set-permissions.ts` actually deploys and writes to; the implementation holds no data for
+any name. Every other read path (PermissionMirror, both subgraphs, the live app) was
+already reading the correct resolver and was unaffected — only this one script, and only
+the exact command the README points a judge at.
+
+**AI-generated:** `ENS_AGENT_RESOLVER_SEPOLIA` added to `scripts/lib/constants.ts` as the
+real default; `read-identity.ts` repointed at it; `ENS_RESOLVER_ADDRESS` documented in
+`.env.example` (it appeared nowhere before); `I-003` recorded in `ISSUES.md`; the README's
+"What is live right now" table updated from 2 Arc settlements / $0.35 / 3 reputation
+entries to 5 settlements / $1.60 / 6 entries, linking the full Arc address history instead
+of two cherry-picked tx links now that there's enough volume to show protocol diversity
+instead.
+
+**Human-directed:** the settlement transactions themselves were requested and executed in
+the prior turn; this turn's ask was the README update, which surfaced the bug.
+
+**Verified live:** re-ran `npm run read:identity` after the fix — it now prints the real
+`mandate.permissions` JSON and `mandate.policy` prose, matching what PermissionMirror and
+the subgraph have shown all along. `tsc -p tsconfig.scripts.json` and `eslint` both clean.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-09 | Submission compliance | Closing the AI-disclosure gap
+
+**Task:** "Make the repo qualifiable" — fix what ETHOnline 2026's own stated rules
+require but this repo didn't fully meet, found during the prior audit.
+
+**What was wrong:** ETHOnline 2026's rules state submissions must "include all spec
+files, prompts, and planning artifacts in your submission repository." `AI_USAGE.md`
+itself cited four spec files — `phase4-ui.md`, `phase6-ui.md`, `phase8-ui.md`,
+`phase9-integration.md` — that did not exist in `/specs`. A dangling citation in your
+own disclosure document is worse than an absent one.
+
+**AI-generated:** the four missing files, reconstructed from the "Task" / "Claude Code
+was asked to" text `AI_USAGE.md` already recorded for those phases on the day each was
+built — copied verbatim from that record, not invented. Each file says plainly at the
+top that it is a reconstruction, not the original prompt as typed, since that original
+text was never saved separately and can't honestly be presented as recovered. Also
+added `LICENSE` (MIT) and a `license` field in `package.json` — neither was present,
+and ETHGlobal's page doesn't require a specific one, but an OSS submission without one
+is worth not leaving as an open question.
+
+**Human-directed:** none of this was requested item-by-item — the user asked to "do
+the necessary" to close what the last audit found.
+
+**Verified:** every `/specs/*.md` path cited anywhere in this file now resolves to a
+real file — checked by extracting every citation and testing each path.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+---
+
+### 2026-09-09 | Phase 7 | MandateGate, the custom SwapVM opcode, built and proven live
+
+**Task:** `/specs/phase7-mandategate.md` — the stretch goal: enforce the underwriting
+decision inside the swap itself, as a real 1inch SwapVM opcode, with two live testnet
+transactions proving both outcomes.
+
+**What was found before writing any code:** the phase prompt cited two things as fact
+that turned out not to be true, caught by cloning `github.com/1inch/swap-vm` and
+`github.com/1inch/aqua` and reading the real source instead of building against the
+prompt's description of it. First, "Turing Swap's `_humanGate`" — the prompt's named
+precedent for the opcode pattern — does not exist anywhere in either repo (grepped
+both, case-insensitive, zero matches). The real, documented precedent is
+`OnlyTakerTokenBalanceNonZero` in `src/instructions/TokenValidators.sol`; swap-vm's own
+`docs/PROGRAMS.md` calls this shape an "institutional gate." Second, `ASSUMPTIONS.md`
+had two `[UNVERIFIED]` entries from Phase 1 guessing at the opcode dispatch mechanism
+and Aqua's deploy config (`chain-11155111.json`) — neither guess was right. The real
+dispatcher is `_runOpcode(Context, uint256, bytes) internal virtual`, built to be
+overridden; there's no chain-specific config file, deployment is one constructor arg
+(`AquaRouter(owner)`).
+
+**AI-generated:** `contracts/opcodes/MandateGate.sol` — an opcode library in
+`OnlyTakerTokenBalanceNonZero`'s exact shape (build/parse/exec, custom errors), reading
+the already-deployed PermissionMirror from Phase 1/5 and reverting unless the agent's
+permission is unexpired and the target protocol bit is set. Takes opcode slot `0x27`,
+an unallocated slot swap-vm's own enum already reserves for new instructions in that
+bank — the header byte is pushed as a raw `uint8`, not through `Opcode` enum machinery,
+so nothing in the vendored package needs editing. `contracts/MandateSwapVMRouter.sol`
+overrides `_runOpcode`, handles the one new opcode, falls through to
+`super._runOpcode` for everything else. `@1inch/swap-vm` and `@1inch/aqua` (plus their
+own `@1inch/solidity-utils`, `forge-std`, `@openzeppelin/contracts` pins) added as real
+npm dependencies rather than hand-copied. `test/MandateGateAqua.t.sol` subclasses
+swap-vm's own `AquaSwapVMTest` harness — a real Aqua-backed run loop, not a stand-in —
+overriding only which router gets deployed: 4 cases, all passing, before any testnet
+gas was spent. `script/DeployMandateGate.s.sol` deployed a real `AquaRouter` and
+`MandateSwapVMRouter` on Sepolia and shipped two strategies through Aqua: one gated on
+Uniswap (already in the live agent's real, currently-synced PermissionMirror scope —
+read live before building against it, not assumed), one gated on GMX perps (already
+outside it, the same case the landing page's own blocked-demo preset already uses).
+`script/FillApproved.s.sol` and `script/FillBlocked.s.sol` filled each: the approved
+one executed normally; the blocked one needed `cast send --gas-limit 400000` with
+Foundry's own computed calldata, because `forge script --broadcast` — even with
+`--skip-simulation` — refuses to submit a transaction its pre-flight `eth_estimateGas`
+shows reverting, and there was no other way to get a real, mined, on-chain revert
+instead of a merely-simulated one.
+
+**Human-directed:** the user authorized real testnet execution explicitly ("we have
+time so lets complete it"), and separately funded the agent wallet with additional
+Sepolia ETH mid-task when the deploy's gas estimate left too thin a margin for the
+follow-up fill transactions — flagged rather than pushed through on an unsafe balance.
+
+**Verified live:** two real Sepolia transactions, both read back from chain after the
+fact via `cast run`/`cast receipt`, not just trusted from the script's own log output —
+approved fill `0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508`
+(block 11666873, status success, 10 tokenA in / 9.756097560975609756 tokenB out) and
+blocked fill `0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283`
+(block 11666888, status failed, trace shows `ProtocolNotInAllowedScope(agent, 4, 7)`
+reverting from inside `MandateSwapVMRouter.swap` → `MandateGate.exec`).
+`forge test --match-contract MandateGateAquaTest`: 4 passed, 0 failed. Not wired into
+the product's own Console/Execute trade flow — recorded honestly in README's Honest
+Limitations as a standalone proof, not a shipped feature.
+
+**Spec files used:** `/specs/phase7-mandategate.md`

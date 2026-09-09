@@ -69,17 +69,11 @@ export function GateScene({ allowed, className = '' }: { allowed: string[]; clas
       }
       ctx.globalCompositeOperation = 'source-over'
 
-      // the gate: halo, then core slit with a slow breathing flicker
+      // the gate: an ambient column of light, no hard-edged stroke -- a glow, not a line.
       const flick = 0.92 + 0.08 * Math.sin(t * 0.0013) + 0.02 * Math.sin(t * 0.021)
       const halo = ctx.createRadialGradient(gx, (gTop + gBot) / 2, 0, gx, (gTop + gBot) / 2, h * 0.55)
-      halo.addColorStop(0, `rgba(255,255,255,${0.20 * flick})`); halo.addColorStop(0.25, `rgba(255,255,255,${0.06 * flick})`); halo.addColorStop(1, 'rgba(255,255,255,0)')
-      ctx.save(); ctx.scale(0.55, 1); ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(gx / 0.55, (gTop + gBot) / 2, h * 0.55, 0, Math.PI * 2); ctx.fill(); ctx.restore()
-      for (const [wd, a, blur] of [[26, 0.10, 60], [12, 0.35, 30], [5, 0.9, 12], [2, 1, 0]] as const) {
-        ctx.strokeStyle = `rgba(255,255,255,${a * flick})`; ctx.lineWidth = wd; ctx.lineCap = 'round'
-        ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = blur
-        ctx.beginPath(); ctx.moveTo(gx, gTop); ctx.lineTo(gx, gBot); ctx.stroke()
-      }
-      ctx.shadowBlur = 0
+      halo.addColorStop(0, `rgba(255,255,255,${0.22 * flick})`); halo.addColorStop(0.22, `rgba(255,255,255,${0.09 * flick})`); halo.addColorStop(1, 'rgba(255,255,255,0)')
+      ctx.save(); ctx.scale(0.42, 1); ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(gx / 0.42, (gTop + gBot) / 2, h * 0.55, 0, Math.PI * 2); ctx.fill(); ctx.restore()
 
       // attempts
       if (!reduced) { spawn += dt; if (spawn > 1900 && ps.length < 9) { spawn = 0; spawnOne() } }

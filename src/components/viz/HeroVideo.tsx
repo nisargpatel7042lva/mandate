@@ -12,7 +12,7 @@ export function HeroVideo({ src, className = '' }: { src: string; className?: st
   if (failed) return null
   return (
     <video
-      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ${ready ? 'opacity-100' : 'opacity-0'} ${className}`}
+      className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-[1200ms] ${ready ? 'opacity-100' : 'opacity-0'} ${className}`}
       autoPlay muted loop playsInline preload="auto" aria-hidden
       onCanPlay={() => setReady(true)}
       onError={() => setFailed(true)}

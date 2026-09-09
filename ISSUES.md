@@ -29,6 +29,25 @@ should never be reachable without authentication in the first place.
 **Status: FIXED**
 
 
+### I-003 — read-identity.ts silently read the wrong ENS resolver
+`read-identity.ts` fell back to `ENS_PUBLIC_RESOLVER_SEPOLIA` when `ENS_RESOLVER_ADDRESS`
+wasn't set — which no `.env` in this repo ever set it to be. That constant is the shared
+`DedicatedResolver` *implementation*, not the per-name proxy `set-permissions.ts` actually
+deploys and writes to; the implementation holds no data for any name. The script ran
+without error and printed `mandate.permissions` / `mandate.policy` as empty, even though
+the real per-name resolver (`0x47199acb…`, documented in ARCHITECTURE.md) has held the
+real scope the whole time — every other read path (PermissionMirror, both subgraphs, the
+live app) was already reading the correct resolver and was never affected. Found by
+running the README's own "try it" command as a judge would.
+
+**Fix applied:** added `ENS_AGENT_RESOLVER_SEPOLIA` (the real proxy address) to
+`scripts/lib/constants.ts`, pointed `read-identity.ts`'s default at it instead of the
+implementation alias, and documented `ENS_RESOLVER_ADDRESS` in `.env.example` so it's
+discoverable rather than a silent env var no file mentions.
+
+**Status: FIXED**
+
+
 ### I-001 — TradeLog table had no fixture disclosure
 The "Trade Decisions" card on `/dashboard` showed 6 example trades from Sept 4 with
 fake tx hashes and no in-card label. A judge would read them as real historical records.

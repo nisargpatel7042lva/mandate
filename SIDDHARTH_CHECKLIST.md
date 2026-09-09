@@ -131,35 +131,55 @@ evidence (tx hashes, explorer links) captured in the phase report.
 
 ---
 
-## Phase 7 — MandateGate: custom SwapVM opcode (Sept 9–11) 🟡 STRETCH
+## Phase 7 — MandateGate: custom SwapVM opcode (Sept 9–11) 🟡 STRETCH ✅ COMPLETE (verified live 2026-09-09)
 
 **Do not start until Phases 1, 3, and 5 are solid end to end.**
 **Hard timebox: if it isn't cleanly working by the evening of Sept 11, invoke the fallback.**
 
-- [ ] Resolve `UNVERIFIED`: read actual `github.com/1inch/swap-vm` source to confirm the
-      opcode table structure — `_instructions()` array vs `_runOpcode` if-else dispatcher.
-      Do not assume from memory or a similar project's description.
-- [ ] Resolve `UNVERIFIED`: does `chain-11155111.json` exist for Aqua? Can we self-deploy?
-- [ ] Deploy SwapVM router + Aqua on Sepolia per their DEPLOY.md
-- [ ] Deploy PermissionMirror for real on the execution chain
-- [ ] Get the relayer actually syncing it from the canonical ENS record + composed trust score
-- [ ] Write the `MandateGate` opcode, following Turing Swap's `_humanGate` precedent
-      (reads external state mid-execution, reverts on failure)
-- [ ] **Append** it to the opcode table — do not replace existing opcodes (1inch rule:
-      bonus for modifying opcodes, official contracts required as the base)
-- [ ] Wire into one real Aqua position type
-- [ ] Demo **both** outcomes live on testnet:
-  - [ ] in-scope, well-reputed action → executes successfully
-  - [ ] out-of-scope or low-reputation action → **reverts at the MandateGate check**, on-chain revert visible
-- [ ] Clean incremental git history for this phase specifically (1inch disqualifies
-      single-commit final-day entries)
+- [x] Resolved `UNVERIFIED`: cloned `github.com/1inch/swap-vm` and `github.com/1inch/aqua`
+      directly and read the real source rather than assuming. It's an if-else `_runOpcode`
+      dispatcher (`internal virtual`), not a `_instructions()` function array — and the
+      phase prompt's cited precedent, "Turing Swap's `_humanGate`", does not exist in
+      either repo (grepped both). The real precedent is `OnlyTakerTokenBalanceNonZero`
+      in `TokenValidators.sol` — swap-vm's own docs call this pattern an
+      "institutional gate". MandateGate follows that shape instead.
+- [x] Resolved `UNVERIFIED`: no `chain-11155111.json` exists — that filename was a guess.
+      Real deploy path is generic (`make deploy-aqua-router`, network via `.env`). Self-deploy
+      confirmed straightforward: `AquaRouter(owner)`, one constructor arg.
+- [x] Deployed real `AquaRouter` + `MandateSwapVMRouter` on Sepolia (pulled `@1inch/swap-vm`
+      and `@1inch/aqua` in as real npm dependencies — nothing hand-copied or modified)
+- [x] PermissionMirror already deployed for real in Phase 1 — MandateGate reads that exact
+      same live contract, not a fresh copy of it
+- [x] Relayer already syncing it live since Phase 5 — confirmed the read live before building
+      against it (`getPermissions(agent)` → `allowedProtocols = 7`, unexpired)
+- [x] Wrote the `MandateGate` opcode against the real precedent (see above), opcode slot
+      `0x27` — an unallocated slot swap-vm's own enum already reserves for this
+- [x] **Appended**, not replaced: `MandateSwapVMRouter` overrides the (already `virtual`)
+      `_runOpcode` and falls through to `super._runOpcode` for every existing opcode.
+      `1inch/swap-vm` and `1inch/aqua` are untouched vendored dependencies.
+- [x] Wired into a real Aqua position: two strategies shipped through the actual `Aqua.ship()`
+      flow, XYC swap curve, real ERC20 liquidity
+- [x] Proven first against a real (not hand-rolled) Aqua-backed SwapVM run loop, locally,
+      before spending testnet gas: `test/MandateGateAqua.t.sol`, 4/4 passing
+- [x] Demoed **both** outcomes live on Sepolia:
+  - [x] Uniswap (in scope) → [executed successfully](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508),
+        block 11666873
+  - [x] GMX perps (out of scope) → [reverted on-chain](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283)
+        at the MandateGate check, block 11666888, `ProtocolNotInAllowedScope(agent, 4, 7)`
+- [x] Clean incremental git history for this phase: 8 commits, each one logical step
+      (deps → opcode → router → test → deploy script → deploy → approved fill → blocked fill)
 
-**FALLBACK if not clean by Sept 11 evening:** execute the approved action as a plain swap
-instead of a custom SwapVM position, keep the underwriting story intact via Phases 1–5,
-and don't submit for the 1inch prize. The three core tracks don't depend on this.
+**Note on the blocked-fill transaction:** `forge script --broadcast` refuses to submit a
+transaction its own pre-flight simulation shows reverting — even `--skip-simulation` doesn't
+help, since `eth_estimateGas` still runs and still fails the same way. Extracted the exact
+calldata Foundry computed and sent it directly with `cast send --gas-limit 400000`, which
+skips gas estimation entirely. That's the one way to get a transaction you know will revert
+actually mined on-chain rather than just simulated.
 
 **Definition of done:** two real, live testnet transactions — one MandateGate-approved
 fill that succeeds, one MandateGate-blocked attempt that reverts on-chain — both with tx hashes.
+**Met.** Not wired into the product's own Console/Execute trade flow (see README's Honest
+Limitations) — this is a standalone, live-testnet proof of the opcode itself.
 
 ---
 
@@ -187,9 +207,13 @@ start to finish, with no manual data seeding via a script that wouldn't exist in
 - [x] Architecture diagram + setup a judge can follow, no wallet needed for the MCP path
 - [x] Prior-art section names ERC-8004 and AgentScope and states what Mandate adds — what
       Mandate adds on top
-- [x] Every claim checked against live state; 1inch explicitly marked not submitted
-- [ ] Final completeness pass on AI_USAGE.md (should already be mostly populated)
-- [ ] Confirm `/specs` contains the build plan + every phase prompt actually used
+- [x] Every claim checked against live state; 1inch (Phase 7) now real and live — see above
+- [x] Final completeness pass on AI_USAGE.md — done 2026-09-09, current through the
+      cinematic redesign and judge-readiness passes
+- [x] Confirm `/specs` contains the build plan + every phase prompt actually used —
+      done 2026-09-09: 4 of the 8 cited files (phase4/6/8/9) didn't exist, only the
+      AI_USAGE.md summary of them did. Reconstructed from that summary and added,
+      each labeled honestly as a reconstruction, not the verbatim original prompt.
 - [x] Per-sponsor sections for ENS, Graph and Arc written from verified work
 
 ---
@@ -212,10 +236,14 @@ start to finish, with no manual data seeding via a script that wouldn't exist in
 | **The Graph** | Live Subgraph Studio data, not mocked; 2+ Graph products composed; reasoning shown, not raw query output | Phase 3 |
 | **Arc/Circle** | Working frontend + backend + architecture diagram; decision logic traceably tied to a real signal | Phase 5 |
 | **ENS** | ENSv2 (Sepolia) central to the product, functional demo, no hard-coded values | Phase 1 |
-| **1inch** (stretch) | Official Aqua/SwapVM contracts; real git history; on-chain token transfer shown in demo | Phase 7 |
+| **1inch** (stretch) | Official Aqua/SwapVM contracts; real git history; on-chain token transfer shown in demo | Phase 7 — ✅ met |
 
-Submit for up to 3 Partner Prizes. Default: **Graph, Arc, ENS.** Swap in 1inch only if
-Phase 7 fully succeeded and dropping one of the other three is clearly worth it.
+Up to 3 Partner Prizes can be submitted. Phase 7 fully succeeded (both real transactions,
+tx hashes above), which means there are now 4 qualifying tracks instead of 3 — **this is
+a real decision for Nisarg, not an automatic swap-in.** MandateGate is a standalone opcode
+proof, not wired into the product's own trade flow the way Graph/Arc/ENS are woven through
+every screen; judges scoring "Practicality" may weigh that differently for 1inch than for
+the other three. Decide before submission which 3 (or whether to list all 4).
 
 ---
 
