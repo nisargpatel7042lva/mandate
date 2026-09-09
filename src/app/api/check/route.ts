@@ -64,6 +64,12 @@ export async function POST(req: Request): Promise<Response> {
     if (!protocol || !amountUsdcDollars || isNaN(amountUsdcDollars)) {
       return Response.json({ error: 'protocol and amountUsdc are required' }, { status: 400 })
     }
+    if (amountUsdcDollars <= 0) {
+      // A falsy/NaN check alone lets a negative amount through: it satisfies
+      // every downstream comparison (amount > maxPositionSize, spend > dailyCap)
+      // by being smaller than any positive limit, so it was coming back authorized.
+      return Response.json({ error: 'amountUsdc must be a positive number' }, { status: 400 })
+    }
   } catch {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
