@@ -188,8 +188,12 @@ start to finish, with no manual data seeding via a script that wouldn't exist in
 - [x] Prior-art section names ERC-8004 and AgentScope and states what Mandate adds — what
       Mandate adds on top
 - [x] Every claim checked against live state; 1inch explicitly marked not submitted
-- [ ] Final completeness pass on AI_USAGE.md (should already be mostly populated)
-- [ ] Confirm `/specs` contains the build plan + every phase prompt actually used
+- [x] Final completeness pass on AI_USAGE.md — done 2026-09-09, current through the
+      cinematic redesign and judge-readiness passes
+- [x] Confirm `/specs` contains the build plan + every phase prompt actually used —
+      done 2026-09-09: 4 of the 8 cited files (phase4/6/8/9) didn't exist, only the
+      AI_USAGE.md summary of them did. Reconstructed from that summary and added,
+      each labeled honestly as a reconstruction, not the verbatim original prompt.
 - [x] Per-sponsor sections for ENS, Graph and Arc written from verified work
 
 ---
