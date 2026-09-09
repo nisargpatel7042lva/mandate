@@ -805,3 +805,34 @@ the prior turn; this turn's ask was the README update, which surfaced the bug.
 the subgraph have shown all along. `tsc -p tsconfig.scripts.json` and `eslint` both clean.
 
 **Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
+
+
+---
+
+### 2026-09-09 | Submission compliance | Closing the AI-disclosure gap
+
+**Task:** "Make the repo qualifiable" — fix what ETHOnline 2026's own stated rules
+require but this repo didn't fully meet, found during the prior audit.
+
+**What was wrong:** ETHOnline 2026's rules state submissions must "include all spec
+files, prompts, and planning artifacts in your submission repository." `AI_USAGE.md`
+itself cited four spec files — `phase4-ui.md`, `phase6-ui.md`, `phase8-ui.md`,
+`phase9-integration.md` — that did not exist in `/specs`. A dangling citation in your
+own disclosure document is worse than an absent one.
+
+**AI-generated:** the four missing files, reconstructed from the "Task" / "Claude Code
+was asked to" text `AI_USAGE.md` already recorded for those phases on the day each was
+built — copied verbatim from that record, not invented. Each file says plainly at the
+top that it is a reconstruction, not the original prompt as typed, since that original
+text was never saved separately and can't honestly be presented as recovered. Also
+added `LICENSE` (MIT) and a `license` field in `package.json` — neither was present,
+and ETHGlobal's page doesn't require a specific one, but an OSS submission without one
+is worth not leaving as an open question.
+
+**Human-directed:** none of this was requested item-by-item — the user asked to "do
+the necessary" to close what the last audit found.
+
+**Verified:** every `/specs/*.md` path cited anywhere in this file now resolves to a
+real file — checked by extracting every citation and testing each path.
+
+**Spec files used:** `/specs/phase-ui-redesign.md`, `/specs/build-plan.md`
