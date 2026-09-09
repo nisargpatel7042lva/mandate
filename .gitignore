@@ -22,6 +22,9 @@
 
 # misc
 .DS_Store
+Thumbs.db
+desktop.ini
+*:Zone.Identifier
 *.pem
 
 # debug
@@ -41,6 +44,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# bun.lock: repo standardises on npm (package-lock.json); ignored so an
+# occasional `bun install` doesn't dirty the tree or drift from the real lockfile
 bun.lock
 
 # subgraph build artifacts
@@ -51,6 +57,3 @@ bun.lock
 # foundry build output
 /out
 /cache
-
-.env
-.env.example
