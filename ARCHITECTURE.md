@@ -1,7 +1,7 @@
 # Mandate — Architecture
 
-> **Status:** Phases 1 and 3 complete and live on Sepolia. Phase 5 (Arc settlement)
-> and Phase 7 (MandateGate) not started. Every address below is verified on-chain.
+> **Status:** Phases 1, 3, 5 (Arc settlement), and 7 (MandateGate) all complete and
+> verified live. Every address below is verified on-chain.
 
 ## Overview
 
@@ -29,11 +29,11 @@ both its policy AND its live reputation score — enforced inside the swap execu
   readable by any ENS tooling without EAC bitmask schema uncertainty.
 
 **PermissionMirror** (`0x6f19dd6f759fac8a19579ecdefb342009a21d9a7`, deployed Sepolia block 11642041)
-- Kept as an architecture artifact for the cross-chain fallback pattern (see below)
-- In the single-chain prototype, MandateGate reads ENSv2 directly; PermissionMirror
-  becomes relevant if the execution chain differs from Sepolia.
+- Synced from the canonical ENSv2 record by the backend relayer whenever it changes
+- The synchronous, same-chain read `MandateGate` actually checks mid-swap (Section 3) —
+  ENSv2 itself is the source of truth, PermissionMirror is what enforcement reads live
 
-### 2. Reputation & Risk Signal (The Graph) — Phase 3 skeleton ✓, live run pending
+### 2. Reputation & Risk Signal (The Graph) — Phase 3 ✓
 
 **ERC-8004 Reputation Registry** (`0x8004B663056A597Dffe9eCcC1965A193B7388713` on Sepolia)
 - `getSummary(agentId, clientAddresses, tag1, tag2)` → feedback count + weighted score
@@ -42,7 +42,8 @@ both its policy AND its live reputation score — enforced inside the swap execu
 - Agent0/ERC-8004 subgraph: Base Mainnet deployment ID `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb`
   — field names must be verified via `scripts/introspect-agent0-schema.ts` before live queries.
 - Mandate subgraph (subgraph/): indexes PermissionMirror.PermissionSynced events on Sepolia.
-  Entities: AgentScope (current state), PermissionUpdate (history). Not yet deployed.
+  Entities: AgentScope (current state), PermissionUpdate (history). Deployed and indexing
+  live on Subgraph Studio (v0.0.2) — see README for the query endpoint.
 
 **Underwriting formula (src/lib/underwriting.ts):**
 
@@ -73,20 +74,32 @@ Authorization decision (all must hold):
 - Tools: `get_agent_authority`, `check_permission`, `get_risk_score`
 - Each tool fetches from live subgraphs — no fixtures
 
-### 3. Enforcement & Execution (1inch SwapVM, self-deployed on Sepolia) — Phase 7, stretch
+### 3. Enforcement & Execution (1inch SwapVM, self-deployed on Sepolia) — Phase 7 ✓
 
-**MandateGate** — custom SwapVM opcode
-- Reads agent permission scope from ENSv2 resolver (same chain, synchronous)
-- Reads agent reputation score from ERC-8004 Reputation Registry
-- Reverts if: scope expired, protocol not allowed, position size exceeded, reputation below threshold
+**MandateGate** (`contracts/opcodes/MandateGate.sol`) — custom SwapVM opcode, slot `0x27`
+- Reads the agent's scope from **PermissionMirror** (`0x6f19dd6f759fac8a19579ecdefb342009a21d9a7`),
+  not ENSv2 directly — mid-swap execution needs a synchronous same-chain read, and
+  PermissionMirror is that mirror, kept in sync by the Phase 5 relayer
+- Reverts if: scope expired/unset, or the requested protocol bit isn't in `allowedProtocols`
+- Appended to `AquaSwapVMRouter._runOpcode` (`contracts/MandateSwapVMRouter.sol`) via
+  override + `super`, not by editing the vendored `1inch/swap-vm` or `1inch/aqua` packages
 
-**SwapVM Router** — to be self-deployed on Sepolia per `1inch/swap-vm` DEPLOY.md
-- Opcode registration: `_runOpcode` dispatcher pattern (confirmed from `src/SwapVM.sol`)
+**Live on Sepolia:** `AquaRouter` `0x7a8Fbe264cCedc85FA9C5Dc89e5f63BBD900cEd5`,
+`MandateSwapVMRouter` `0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987`. Both outcomes proven
+with real transactions — see README's "What is live right now" table.
 
-### 4. Settlement & Reputation Write-back (Circle Arc) — Phase 5, not started
+### 4. Settlement & Reputation Write-back (Circle Arc) — Phase 5 ✓
 
-Arc Agent Stack SDK → USDC settlement after approved trades. Reputation write-back to
-ERC-8004 Reputation Registry on settled trades. Testnet endpoint TBD from Circle docs.
+Approved trades settle as a native value transfer on Arc testnet — Arc's native currency
+*is* USDC (18 decimals), so there's no token contract or approval step. Settlement is
+gated on the underwriting decision (a denied trade never reaches the transfer), and the
+outcome is written back to ERC-8004 reputation by a second account (the registry rejects
+self-feedback).
+
+Circle's actual **Agent Stack SDK does not support Arc** — its starter kits are scoped to
+Base and Polygon only (`packages/circle-tools/src/chains.ts` defines exactly those two;
+verified by reading the SDK source, not assumed). Settlement here is built directly on
+Arc with viem instead. See `ASSUMPTIONS.md` → Circle/Arc for the full verification.
 
 ---
 
@@ -175,10 +188,9 @@ MandateGate then reads from PermissionMirror instead of ENSv2 directly.
 | Mandate subgraph | `https://api.studio.thegraph.com/query/1758732/mandate-subgraph/v0.0.2` |
 | Agent0 subgraph | gateway id `43s9hQRurMGjuYnC1r2ZwS6xSQktbFyXMPMqGKUFJojb` (Base Mainnet only) |
 
-### Not yet deployed
+### Phase 7 deployment (Sepolia)
 
-| | Phase |
+| | Address |
 |---|---|
-| Aqua / SwapVM router | 7 — stretch, timeboxed to Sept 11 |
-| MandateGate opcode | 7 — stretch |
-| Circle Arc settlement | 5 — not started |
+| AquaRouter | `0x7a8Fbe264cCedc85FA9C5Dc89e5f63BBD900cEd5` |
+| MandateSwapVMRouter | `0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987` |
