@@ -93,7 +93,7 @@ const PERMISSION_SCOPE = {
   version: '1',
   agentName: FULL_NAME,
   agentId: optionalEnv('AGENT_ID', '10099'),
-  allowedProtocols: ['uniswap-v3', 'curve', 'aave-v3'],
+  allowedProtocols: ['uniswap-v3', 'curve', 'aave-v3', '1inch'],
   allowedPositionTypes: ['spot', 'lp'],
   maxPositionSizeUsdc: '10000',
   maxDailySpendUsdc: '50000',
@@ -102,7 +102,7 @@ const PERMISSION_SCOPE = {
 
 const POLICY_SUMMARY =
   `Mandate test agent (ERC-8004 agentId ${PERMISSION_SCOPE.agentId}) — authorized for spot and LP ` +
-  'positions on Uniswap v3, Curve, and Aave v3. Max single position: $10,000 USDC. ' +
+  'positions on Uniswap v3, Curve, Aave v3, and 1inch. Max single position: $10,000 USDC. ' +
   'Max daily spend: $50,000 USDC. Expires 30 days from registration. ' +
   'Enforced by MandateGate at execution time on Sepolia.'
 
@@ -121,6 +121,17 @@ async function main() {
   console.log()
 
   // ── Is a resolver already set? ───────────────────────────────────────────
+  // KNOWN ISSUE (found running this for real 2026-09-09): this consistently
+  // returns zero/reverts even when a resolver genuinely is attached -- the
+  // resolver actually in use (ENS_AGENT_RESOLVER_SEPOLIA, verified live and
+  // reading real records) was set outside this script, and this check has
+  // never once seen it. Running this script live deploys ANOTHER resolver
+  // instead of reusing the real one, which nothing else points at. Root
+  // cause not yet found (create-subname.ts's own comment already flags that
+  // getSubregistry needs a label, not a tokenId -- getResolver may have the
+  // same mismatch). Until fixed: don't rely on this script's own resolver
+  // detection -- write records directly to ENS_AGENT_RESOLVER_SEPOLIA
+  // (setText, per Step 3 below) instead of running this end to end.
   let resolver = zeroAddress as Address
   try {
     resolver = await readContract<Address>(publicClient, {

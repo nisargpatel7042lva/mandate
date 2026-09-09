@@ -47,6 +47,27 @@ discoverable rather than a silent env var no file mentions.
 
 **Status: FIXED**
 
+### I-004 — relayer-stub.ts had the same wrong-resolver default as I-003, never fixed
+Same root cause as I-003, just in a second file: `relayer-stub.ts` defaulted to
+`ENS_PUBLIC_RESOLVER_SEPOLIA` (the empty shared implementation) when `ENS_RESOLVER_ADDRESS`
+wasn't set, instead of the real per-name proxy. I-003's fix only touched `read-identity.ts`.
+Found running the relayer for real to sync a permission update: it read `mandate.permissions`
+as empty and logged "nothing to sync," even though the real resolver had a fresh record on it.
+
+**Fix applied:** same fix as I-003, applied here — defaults to `ENS_AGENT_RESOLVER_SEPOLIA`.
+
+**Also found in the same session, not yet root-caused:** `set-permissions.ts`'s own
+"is a resolver already set" check (`getResolver(tokenId)` on the subregistry) reliably
+returns zero/reverts even when a resolver genuinely is attached and reads correctly
+everywhere else. Running the script live deployed a second, unrelated resolver instead of
+reusing the real one. Worked around by writing the update directly to the known-real
+resolver with `setText` instead of running the script end to end; the detection logic
+itself is flagged in the script with a comment but not fixed — root cause unconfirmed,
+possibly the same `getResolver(label)` vs `getResolver(tokenId)` signature mismatch
+`create-subname.ts`'s own comment already flags for `getSubregistry`.
+
+**Status: FIXED (relayer-stub.ts); set-permissions.ts detection logic still unreliable, workaround documented in the script**
+
 
 ### I-001 — TradeLog table had no fixture disclosure
 The "Trade Decisions" card on `/dashboard` showed 6 example trades from Sept 4 with

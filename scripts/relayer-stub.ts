@@ -22,7 +22,7 @@
 import { createPublicClient, createWalletClient, http, namehash, type Address, type Abi } from 'viem'
 import { sepolia } from 'viem/chains'
 import {
-  ENS_PUBLIC_RESOLVER_SEPOLIA,
+  ENS_AGENT_RESOLVER_SEPOLIA,
   PUBLIC_RESOLVER_ABI,
   MANDATE_PERMISSIONS_KEY,
 } from './lib/constants.js'
@@ -42,9 +42,11 @@ const PERMISSION_MIRROR_ADDRESS = optionalEnv(
 
 const rpcUrl = getRpcUrl()
 
-// ENSv2 resolvers are per-name; ENS_RESOLVER_ADDRESS is the instance deployed
-// for our agent's subname by set-permissions.ts.
-const RESOLVER = optionalEnv('ENS_RESOLVER_ADDRESS', ENS_PUBLIC_RESOLVER_SEPOLIA) as Address
+// ENSv2 resolvers are per-name; ENS_RESOLVER_ADDRESS overrides for a different
+// name. Default is the real, already-attached per-name proxy for
+// testagent.mandate.eth -- not the shared, empty implementation contract, which
+// is what this defaulted to before (same bug as I-003, just never fixed here).
+const RESOLVER = optionalEnv('ENS_RESOLVER_ADDRESS', ENS_AGENT_RESOLVER_SEPOLIA) as Address
 
 const publicClient = createPublicClient({
   chain: sepolia,

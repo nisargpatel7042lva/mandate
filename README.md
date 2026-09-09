@@ -94,7 +94,7 @@ enforced independently, from their own records.
 | | |
 |---|---|
 | Agent | `testagent.mandate.eth`, ERC-8004 agentId **10099** |
-| Mandate | uniswap-v3, curve, aave-v3 · spot, lp · max $10,000/trade · $50,000/day |
+| Mandate | uniswap-v3, curve, aave-v3, 1inch · spot, lp · max $10,000/trade · $50,000/day |
 | ENSv2 subname | `0x907779Ea…` subregistry, resolver `0x47199acb…` |
 | PermissionMirror | [`0x6f19dd6f…`](https://sepolia.etherscan.io/address/0x6f19dd6f759fac8a19579ecdefb342009a21d9a7) — Sepolia block 11642041 |
 | Mandate subgraph | [Studio v0.0.2](https://api.studio.thegraph.com/query/1758732/mandate-subgraph/v0.0.2), indexing live |
@@ -123,7 +123,7 @@ curl -s https://mandate-rho.vercel.app/api/mcp \
 
 ```
 authorized: false
-reasons: ["Protocol gmx-perp not in allowlist (bitmask: 7)"]
+reasons: ["Protocol gmx-perp not in allowlist (bitmask: 15)"]
 ```
 
 **Read the whole agent back from chain:**
