@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useLive } from '@/components/live/LiveProvider'
 import { useUi } from './UiProvider'
 
@@ -21,13 +21,17 @@ const LANDING_NAV = [
 ]
 
 export function BrandMark({ size = 22, className = '' }: { size?: number; className?: string }) {
-  // Two uprights and a lintel: the gate. The gap is where authority is checked.
+  // A sealed disc, cut by one slit of light — a mandate is a sealed authorization,
+  // and the slit is the same threshold the hero's gate scene renders at full scale.
+  const id = useId()
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <rect x="4" y="5" width="3.4" height="16" rx="1.7" />
-      <rect x="16.6" y="5" width="3.4" height="16" rx="1.7" />
-      <rect x="4" y="2.6" width="16" height="2.6" rx="1.3" />
-      <circle cx="12" cy="14.2" r="1.5" />
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
+      <mask id={`seal-${id}`}>
+        <rect width="24" height="24" fill="#000" />
+        <circle cx="12" cy="12" r="10" fill="#fff" />
+        <rect x="10.4" y="1.6" width="3.2" height="20.8" rx="1.6" fill="#000" />
+      </mask>
+      <rect width="24" height="24" fill="currentColor" mask={`url(#seal-${id})`} />
     </svg>
   )
 }
