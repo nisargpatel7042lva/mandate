@@ -14,11 +14,20 @@
 //     20 * (1 - revocationRate)
 //     10 * activityPercentile — totalFeedback vs a live sample of the population
 //
-//   MandateHistory_score (0-100), from our own subgraph:
+//   MandateHistory_score (0-100):
+//     No scope record at all: 70 (neutral — a new agent is unproven, not untrustworthy).
+//     No settlements yet: scopeFreshness alone (see below) — there's no track record to
+//     weigh, so freshness is the only real signal available.
+//     Otherwise: trackRecord * 0.75 + scopeFreshness * 0.25. trackRecord is the agent's
+//     real Arc settlement success rate, damped by sample size so a handful of lucky
+//     settlements doesn't read the same as a long clean history — confidence scales
+//     linearly up to 8 settlements, then holds. This is deliberately harder to max out
+//     than a pure freshness proxy: a freshly-synced agent with one settlement does not
+//     score the same as one with a real history, even if both are currently 100% clean.
 //     scopeFreshness — 100 while synced within 24h, decaying linearly to 0 at 7 days.
 //     A stale mirror means enforcement is reading permissions that may no longer
-//     match the canonical ENS record.
-//     No record at all: 70 (neutral — a new agent is unproven, not untrustworthy).
+//     match the canonical ENS record; kept as a minority weight because it's still a
+//     genuine risk signal, just not one that reflects the agent's actual behaviour.
 //
 //   TrustScore:
 //     both available  -> ERC8004 * 0.60 + MandateHistory * 0.40
@@ -45,6 +54,7 @@ import {
   type Agent0Reputation,
 } from './agent0'
 import { fetchAgentScope } from './mandate-subgraph'
+import { getArcSettlements, type ArcSettlement } from './arc-data'
 
 export const TRUST_THRESHOLD = 60
 
@@ -95,9 +105,7 @@ function computeErc8004Score(
   )
 }
 
-function computeMandateHistoryScore(lastSyncedAt: number | null): number {
-  if (lastSyncedAt === null) return 70 // new agent: unproven, not untrusted
-
+function computeScopeFreshness(lastSyncedAt: number): number {
   const nowS = Math.floor(Date.now() / 1000)
   const ageSeconds = nowS - lastSyncedAt
   const oneDayS = 86400
@@ -109,6 +117,24 @@ function computeMandateHistoryScore(lastSyncedAt: number | null): number {
   // linear decay from 100 to 0 between 1 day and 7 days stale
   const staleFraction = (ageSeconds - oneDayS) / (sevenDaysS - oneDayS)
   return Math.round(100 * (1 - staleFraction))
+}
+
+// Full sample gets full weight in the track-record component; fewer settlements
+// damp it proportionally. Not a hard cutoff -- an 8th clean settlement is worth as
+// much confidence as this product's testnet history is ever likely to earn.
+const TRACK_RECORD_FULL_CONFIDENCE_COUNT = 8
+
+function computeMandateHistoryScore(lastSyncedAt: number | null, settlements: ArcSettlement[]): number {
+  if (lastSyncedAt === null) return 70 // new agent: unproven, not untrusted
+
+  const freshness = computeScopeFreshness(lastSyncedAt)
+  if (settlements.length === 0) return freshness // no real history yet -- freshness is all there is
+
+  const successRate = settlements.filter(s => s.success).length / settlements.length
+  const confidence = Math.min(1, settlements.length / TRACK_RECORD_FULL_CONFIDENCE_COUNT)
+  const trackRecord = 100 * successRate * (0.5 + 0.5 * confidence)
+
+  return Math.round(trackRecord * 0.75 + freshness * 0.25)
 }
 
 export interface PermissionCheckParams {
@@ -127,11 +153,12 @@ export async function composeRiskScore(
 ): Promise<UnderwritingResult> {
   const reasons: string[] = []
 
-  const [agent0Data, mandateScope] = await Promise.all([
+  const [agent0Data, mandateScope, settlementsData] = await Promise.all([
     agent0AgentId !== undefined
       ? fetchAgent0Data(agent0ChainId, agent0AgentId).catch(() => null)
       : Promise.resolve(null),
     fetchAgentScope(agentAddress).catch(() => null),
+    getArcSettlements(agentAddress).catch(() => ({ settlements: [], fetchError: 'unreachable' })),
   ])
 
   // ── ERC-8004 score ──────────────────────────────────────────────────────────
@@ -166,10 +193,19 @@ export async function composeRiskScore(
 
   // ── Mandate history score ────────────────────────────────────────────────────
   const lastSyncedAt = mandateScope ? parseInt(mandateScope.lastSyncedAt, 10) : null
-  const mandateHistoryScore = computeMandateHistoryScore(lastSyncedAt)
+  const settlements = settlementsData.settlements
+  const mandateHistoryScore = computeMandateHistoryScore(lastSyncedAt, settlements)
 
   if (!mandateScope) {
     reasons.push('No Mandate subgraph record — neutral score 70 (new agent)')
+  } else if (settlements.length === 0) {
+    reasons.push('No settlement history yet — Mandate history score is scope freshness only')
+  } else {
+    const successCount = settlements.filter(s => s.success).length
+    reasons.push(
+      `Mandate history from ${successCount}/${settlements.length} successful Arc settlements ` +
+        `(sample-size damped, full confidence at ${TRACK_RECORD_FULL_CONFIDENCE_COUNT})`,
+    )
   }
 
   // ── Composite trust score ────────────────────────────────────────────────────
