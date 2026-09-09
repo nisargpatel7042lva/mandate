@@ -39,25 +39,49 @@ reputation data at the moment of the trade.
 
 ## How it works
 
-```
-  ENSv2 text record            the mandate, published publicly
-  testagent.mandate.eth        mandate.permissions + mandate.policy
-         │                     the agent cannot edit this
-         ▼
-  relayer  ──────────────────► PermissionMirror (Sepolia)
-                               on-chain, synchronously readable at execution time
-         ┌─────────────────────────────┐
-         ▼                             ▼
-  Mandate subgraph              Agent0 / ERC-8004 subgraph
-  this agent's own history      the live ERC-8004 population
-         └──────────┬──────────────────┘
-                    ▼
-            composeRiskScore()          trust score + allow/deny + reasons
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-   ⛔ denied              ✅ Arc settlement
-   no money moves         real USDC transfer, then reputation write-back
+```mermaid
+flowchart TD
+    Owner(["Owner<br/>writes the limit"])
+    ENS["ENSv2 text record<br/>testagent.mandate.eth<br/>mandate.permissions / mandate.policy"]
+    Relayer["Relayer"]
+
+    subgraph SEPOLIA[Ethereum Sepolia]
+        Mirror["PermissionMirror<br/>on-chain mandate<br/>sync() gated to relayer"]
+        MandateGraph["Mandate Subgraph<br/>this agent's sync history"]
+    end
+
+    subgraph BASE[Base Mainnet]
+        Agent0["Agent0 / ERC-8004 Subgraph<br/>live reputation + population"]
+    end
+
+    subgraph ENGINE[Underwriting]
+        Compose["composeRiskScore()<br/>TrustScore, scope checks"]
+        MCP["MCP server<br/>/api/mcp"]
+        UI["Mandate app<br/>Console · Simulate · Ledger · Treasury"]
+    end
+
+    subgraph ARCNET[Arc testnet]
+        Settle["USDC settlement<br/>native transfer"]
+    end
+
+    Counterparty["Counterparty<br/>writes ERC-8004 feedback"]
+    Denied(["Denied<br/>no funds move"])
+
+    Owner -->|publishes| ENS
+    ENS -->|reads| Relayer
+    Relayer -->|sync| Mirror
+    Mirror -->|PermissionSynced events| MandateGraph
+    MandateGraph -->|scope| Compose
+    Agent0 -->|reputation| Compose
+    MCP -->|check_permission| Compose
+    UI -->|trade request| Compose
+    Compose -->|denied + reasons| Denied
+    Compose -->|authorized| Settle
+    Settle -->|triggers| Counterparty
+    Counterparty -->|feedback| Agent0
+    Owner -.->|kill switch: signs sync directly| Mirror
+    Mirror -.->|live scope| UI
+    Settle -.->|live settlements| UI
 ```
 
 **The mandate is the unit, not the code.** Two agents with different published scopes are
