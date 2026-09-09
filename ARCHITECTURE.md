@@ -49,17 +49,28 @@ both its policy AND its live reputation score — enforced inside the swap execu
 
 ```
 TrustScore = ERC8004_score × 0.60 + MandateHistory_score × 0.40
+  (no Agent0 row → MandateHistory_score alone, weights renormalised — absence is
+  "unknown", not scored as zero)
 
-ERC8004_score (0–100):
-  = (successfulDecisions / totalDecisions) × 100
-  = 0 if agent has no reputation record (unverified agent — must earn trust)
+ERC8004_score (0–100), from the Agent0/ERC-8004 subgraph:
+  = 40 × clientDiversity      (distinct counterparties, capped at 10, scaled to 1 —
+                                volume from one address is a sybil pattern, not trust)
+  + 30 × valueQuality         (mean non-revoked feedback value, clamped to [0,1])
+  + 20 × (1 − revocationRate)
+  + 10 × activityPercentile   (totalFeedback vs a live sample of the population)
 
 MandateHistory_score (0–100):
-  Interim (Phase 3): scope freshness proxy
-    = 70  if last synced within 24h
-    = linear decay to 0 over days 1–7 of staleness
-    = 70  if no Mandate subgraph record (new agent neutral bonus)
-  Full (Phase 4+): (1 - blockedRate) × 100 once MandateGate events are indexed
+  = 70 if no Mandate subgraph record at all (new agent: unproven, not untrustworthy)
+  = scopeFreshness alone if the scope exists but no settlements have happened yet
+  = trackRecord × 0.75 + scopeFreshness × 0.25 once real settlements exist, where:
+      trackRecord = 100 × successRate × (0.5 + 0.5 × confidence)
+      successRate = successful Arc settlements ÷ total settlements (real txns, not simulated)
+      confidence  = min(1, settlementCount / 8) — a handful of lucky settlements doesn't
+                    read the same as a long clean history
+      scopeFreshness = 100 while PermissionMirror was synced within 24h, decaying
+                    linearly to 0 by day 7 (a stale mirror may be enforcing outdated
+                    permissions — still a real signal, just a minority weight since it
+                    doesn't reflect the agent's actual behaviour)
 
 Authorization decision (all must hold):
   1. TrustScore ≥ 60
