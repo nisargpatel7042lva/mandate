@@ -101,7 +101,7 @@ enforced independently, from their own records.
 | MCP server | [`/api/mcp`](https://mandate-rho.vercel.app/api/mcp) — public, no key needed |
 | Arc settlements | **5** settlements · **$1.60** total, across all three allowed protocols — [full history ↗](https://testnet.arcscan.app/address/0xa0062C5066cF0B34010D7c4E90F68E4287D083a8) |
 | Reputation | 6 feedback entries on ERC-8004, written by a counterparty |
-| MandateGate (1inch SwapVM) | [`0x9E1a0320…`](https://sepolia.etherscan.io/address/0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987) — approved fill [succeeded ↗](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508), blocked fill [reverted on-chain ↗](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283) |
+| MandateGate (1inch SwapVM) | [`0x9E1a0320…`](https://sepolia.etherscan.io/address/0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987) router — both fills went through the executor [`0x25A8fE7F…`](https://sepolia.etherscan.io/address/0x25A8fE7F407E38b2DB50c49ad9B81bB474228e05), which shows both directly: approved fill [succeeded ↗](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508), blocked fill [reverted on-chain ↗](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283) |
 
 ## Try it in two minutes, no wallet needed
 

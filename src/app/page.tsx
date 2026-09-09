@@ -18,7 +18,13 @@ const SUBGRAPH_URL = process.env.NEXT_PUBLIC_MANDATE_SUBGRAPH_URL ?? null
 // Phase 7: the custom SwapVM opcode that enforces this same permission scope inside a
 // swap itself, not just before it. Standalone proof (see README), not wired into the
 // console/execute flow below -- this row is how a judge finds the real transactions.
-const MANDATE_SWAP_VM_ROUTER = '0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987'
+//
+// Links to the executor contract (MockTaker), not the router (MandateSwapVMRouter)
+// itself: both real fills were sent *to* the executor, which called the router
+// internally -- so the router's own Etherscan page shows no direct transactions at
+// all, while the executor's does, immediately, with both outcomes visible.
+const MANDATE_GATE_ROUTER = '0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987'
+const MANDATE_GATE_EXECUTOR = '0x25A8fE7F407E38b2DB50c49ad9B81bB474228e05'
 
 const STEPS = [
   { n: '01', title: 'Publish', body: 'The mandate — allowed protocols, position size, daily cap, expiry — is written once as an ENS text record the agent does not control.' },
@@ -75,7 +81,7 @@ export default async function LandingPage() {
     ...(SUBGRAPH_URL ? [{ label: 'Mandate subgraph', value: 'Studio v0.0.2', href: SUBGRAPH_URL }] : []),
     { label: 'MCP endpoint', value: '/api/mcp', href: '/api/mcp' },
     { label: 'Arc wallet', value: shortAddr(LIVE_AGENT.address, 10, 6), href: EXPLORER.arcAddr(LIVE_AGENT.address) },
-    { label: 'MandateGate (1inch)', value: shortAddr(MANDATE_SWAP_VM_ROUTER, 10, 6), href: EXPLORER.sepoliaAddr(MANDATE_SWAP_VM_ROUTER) },
+    { label: 'MandateGate (1inch)', value: shortAddr(MANDATE_GATE_ROUTER, 10, 6), href: EXPLORER.sepoliaAddr(MANDATE_GATE_EXECUTOR) },
   ]
 
   return (
