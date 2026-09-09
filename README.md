@@ -48,6 +48,7 @@ flowchart TD
     subgraph SEPOLIA[Ethereum Sepolia]
         Mirror["PermissionMirror<br/>on-chain mandate<br/>sync() gated to relayer"]
         MandateGraph["Mandate Subgraph<br/>this agent's sync history"]
+        MandateGate["MandateGate<br/>1inch SwapVM opcode<br/>reverts mid-swap, proof only"]
     end
 
     subgraph BASE[Base Mainnet]
@@ -82,6 +83,7 @@ flowchart TD
     Owner -.->|kill switch: signs sync directly| Mirror
     Mirror -.->|live scope| UI
     Settle -.->|live settlements| UI
+    Mirror -.->|same live scope, read mid-swap| MandateGate
 ```
 
 **The mandate is the unit, not the code.** Two agents with different published scopes are
@@ -161,12 +163,16 @@ server. Reputation weights *distinct counterparties* over raw volume — the mos
 indexed agent has 308,874 feedback entries from 2 addresses, which is a sybil pattern, not
 trust.
 
-**Arc / Circle — real USDC settlement.** Approved trades settle in USDC on Arc testnet.
-Arc's native currency *is* USDC (18 decimals), so settlement is a value transfer with no
-token contract and no approval — genuinely stablecoin-native. Settlement is **gated** on
-the underwriting decision rather than logged beside it: a denied trade never reaches the
-transfer. Each settlement record names the trust score, the specific checks that passed,
-and the ENS record the scope came from. Outcomes are written back to ERC-8004 reputation.
+**Arc / Circle — real USDC settlement, built and live, not one of our 3 submitted tracks.**
+Approved trades settle in USDC on Arc testnet. Arc's native currency *is* USDC (18
+decimals), so settlement is a value transfer with no token contract and no approval —
+genuinely stablecoin-native. Settlement is **gated** on the underwriting decision rather
+than logged beside it: a denied trade never reaches the transfer. Each settlement record
+names the trust score, the specific checks that passed, and the ENS record the scope came
+from. Outcomes are written back to ERC-8004 reputation. Circle's Agent Stack SDK does not
+support Arc (Base and Polygon only — verified by reading the SDK source), so this is built
+directly on Arc with viem instead. Real, working, and part of the product regardless of
+which Partner Prizes we apply for — see ASSUMPTIONS.md for the full verification.
 
 **1inch — MandateGate, a custom SwapVM opcode.** Enforcement, inside the swap itself,
 not before it. `MandateGate` is a real opcode appended to `1inch/swap-vm`'s dispatcher
@@ -207,7 +213,9 @@ Full triage in [ISSUES.md](ISSUES.md); every external fact we verified, and how,
 
 | | |
 |---|---|
-| `contracts/` | `PermissionMirror.sol` — the on-chain scope, relayer-gated |
+| `contracts/` | `PermissionMirror.sol` — the on-chain scope, relayer-gated. `MandateSwapVMRouter.sol` + `opcodes/MandateGate.sol` — the 1inch SwapVM opcode |
+| `test/MandateGateAqua.t.sol` | MandateGate proven against a real Aqua-backed SwapVM run loop, 4/4 passing |
+| `script/` | Foundry deploy/fill scripts that put MandateGate live on Sepolia |
 | `scripts/` | Onboarding, ENS registration, settlement, underwriting — all runnable |
 | `subgraph/` | Our Graph subgraph: schema, mappings, manifest |
 | `mcp/`, `src/app/api/mcp/` | MCP server, standalone and deployed |
