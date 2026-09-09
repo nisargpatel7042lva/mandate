@@ -99,8 +99,8 @@ enforced independently, from their own records.
 | PermissionMirror | [`0x6f19dd6f…`](https://sepolia.etherscan.io/address/0x6f19dd6f759fac8a19579ecdefb342009a21d9a7) — Sepolia block 11642041 |
 | Mandate subgraph | [Studio v0.0.2](https://api.studio.thegraph.com/query/1758732/mandate-subgraph/v0.0.2), indexing live |
 | MCP server | [`/api/mcp`](https://mandate-rho.vercel.app/api/mcp) — public, no key needed |
-| Arc settlements | **5** settlements · **$1.60** total, across all three allowed protocols — [full history ↗](https://testnet.arcscan.app/address/0xa0062C5066cF0B34010D7c4E90F68E4287D083a8) |
-| Reputation | 6 feedback entries on ERC-8004, written by a counterparty |
+| Arc settlements | **6** settlements · **$1.61** total, across all four allowed protocols — [full history ↗](https://testnet.arcscan.app/address/0xa0062C5066cF0B34010D7c4E90F68E4287D083a8) |
+| Reputation | 7 feedback entries on ERC-8004, written by a counterparty |
 | MandateGate (1inch SwapVM) | [`0x9E1a0320…`](https://sepolia.etherscan.io/address/0x9E1a03205337E3bAEd5D629e8af8A3CA679A0987) router — both fills went through the executor [`0x25A8fE7F…`](https://sepolia.etherscan.io/address/0x25A8fE7F407E38b2DB50c49ad9B81bB474228e05), which shows both directly: approved fill [succeeded ↗](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508), blocked fill [reverted on-chain ↗](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283) |
 
 ## Try it in two minutes, no wallet needed
@@ -179,10 +179,13 @@ not before it. `MandateGate` is a real opcode appended to `1inch/swap-vm`'s disp
 (`AquaSwapVMRouter._runOpcode` is `internal virtual` for exactly this; MandateGate takes
 an unallocated slot in the vendored `Opcode` enum's own reserved bank — nothing in
 `swap-vm` or `aqua` is modified, both are pulled in as real dependencies). It reads the
-same live PermissionMirror Phase 1/5 already deployed, mid-execution. Two real Sepolia
-transactions prove both outcomes: an [approved fill that executed](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508)
-(Uniswap, in the agent's scope) and a [blocked fill that reverted on-chain](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283)
-(GMX perps, outside it — the same case the landing page's own blocked-demo preset uses).
+same live PermissionMirror Phase 1/5 already deployed, mid-execution. Three real Sepolia
+transactions prove it: an [approved fill that executed](https://sepolia.etherscan.io/tx/0x7d9fd1f7c697531f53e788a6f7060176795a8f1ad82f68560371682ad3f12508)
+(Uniswap, in the agent's scope), a [blocked fill that reverted on-chain](https://sepolia.etherscan.io/tx/0xad025e14730b8e29f1d211af6f8b47b89a234c36c97306d7bbbbd50ac4bd1283)
+(GMX perps, outside it — the same case the landing page's own blocked-demo preset uses), and
+an [1inch fill that only succeeds because the live scope changed](https://sepolia.etherscan.io/tx/0x29621de649dd30040f49edc4ff08992c0b1d3dce49f8f7369c99e9ff4d4fb3e9)
+after this router was already deployed — MandateGate re-reads PermissionMirror on every
+call, so a permission update takes effect on the very next trade, no redeploy.
 Proven with a real Aqua-backed SwapVM run loop first, locally
 ([`test/MandateGateAqua.t.sol`](test/MandateGateAqua.t.sol), 4/4 passing), before spending
 real testnet gas. Not wired into the product's own Console/Execute flow, which still calls
