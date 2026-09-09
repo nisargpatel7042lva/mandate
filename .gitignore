@@ -57,3 +57,8 @@ bun.lock
 # foundry build output
 /out
 /cache
+/foundry-pp
+
+# broadcast/ is kept -- it's the public on-chain deployment record (addresses, tx
+# hashes, calldata), no secrets. Only the dry-run simulations are noise.
+broadcast/**/dry-run/
